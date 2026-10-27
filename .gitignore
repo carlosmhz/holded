@@ -1,0 +1,11 @@
+# Secretos y datos: NUNCA en el repo (viven fuera de public_html)
+config.php
+holded-data/
+data/
+cache/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
