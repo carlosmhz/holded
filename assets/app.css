@@ -1,0 +1,21 @@
+/* Estilos de la página de Waylet (portados de HTML_WAYLET_) */
+body{font-family:system-ui,sans-serif;background:#f4f5f7;margin:0;padding:20px 16px;color:#1d2433}
+.c{max-width:400px;margin:auto;background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 10px #0001}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+h1{font-size:20px;margin:0 0 2px}.sub{color:#5b6475;font-size:14px;margin:0 0 14px}
+.tabs{display:flex;gap:6px;margin-bottom:16px}.tabs button{flex:1;margin:0;padding:10px 4px;font-size:15px;background:#eef0f4;color:#1d2433}
+.tabs button.on{background:#ff7b00;color:#fff}
+label{display:block;font-size:13px;color:#5b6475;margin:12px 0 4px}
+input,select{width:100%;box-sizing:border-box;font-size:17px;padding:11px;border:1px solid #ccd;border-radius:10px;background:#fff;color:#1d2433}
+input.big{font-size:28px;text-align:right}
+.tipo{display:flex;gap:6px}.tipo button{flex:1;margin:0;padding:10px 4px;font-size:14px;background:#eef0f4;color:#1d2433}
+.tipo button.on{background:#1d2433;color:#fff}
+.go{width:100%;margin-top:16px;font-size:17px;padding:14px;border:0;border-radius:10px;background:#ff7b00;color:#fff;font-weight:600}
+button{border:0;border-radius:10px;font-weight:600;cursor:pointer;font-family:inherit}button:disabled{opacity:.5}
+.hint{font-size:13px;color:#5b6475;margin-top:8px}.p{display:none}.p.on{display:block}
+#m{margin-top:14px;font-size:15px;min-height:20px}.e{color:#c0392b}.k{color:#1e8449}.w{color:#8a4b00}
+.av{background:#fff4e5;color:#8a4b00;border-radius:10px;padding:8px 10px;font-size:13px;margin:0 0 12px}
+.salir{margin:0}.salir button{background:none;color:#8a91a0;font-size:13px;padding:6px 0;font-weight:500}
+table.diag{width:100%;border-collapse:collapse;font-size:14px}table.diag td{padding:6px 4px;border-bottom:1px solid #f0f1f4;vertical-align:top}
+table.diag td:first-child{color:#5b6475;white-space:nowrap}
+code{font-size:12px;word-break:break-all;background:#f4f5f7;padding:2px 4px;border-radius:4px}

@@ -1,0 +1,45 @@
+# holded.mpi-sala.es — Git despliega todo el repo en public_html.
+# Aquí se bloquea por URL todo lo que no es una página pública.
+
+Options -Indexes
+DirectoryIndex index.php
+ServerSignature Off
+
+AddType application/manifest+json .webmanifest
+AddDefaultCharset utf-8
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Solo HTTPS
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+  # Archivos y carpetas ocultos (.git, .gitignore, .htaccess…)
+  RewriteRule (^|/)\. - [F,L]
+
+  # Código interno, datos y documentación
+  RewriteRule ^(src|tests|tools|data|cache|holded-data|vendor)(/|$) - [F,L]
+  RewriteRule ^(config.*\.php|README\.md)$ - [F,L]
+  RewriteRule \.(md|log|sh|ini|lock|dist|bak|sql|json|tmp)$ - [F,L]
+</IfModule>
+
+# Segunda barrera por si mod_rewrite no se aplicara
+RedirectMatch 404 ^/(\.git|src|tests|tools|data|cache|holded-data|vendor)(/|$)
+<FilesMatch "^(\..*|config.*\.php|.*\.(md|log|sh|ini|lock|dist|bak|sql|json|tmp))$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always set Strict-Transport-Security "max-age=31536000"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "no-referrer"
+  Header always set X-Frame-Options "DENY"
+</IfModule>
