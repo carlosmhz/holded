@@ -20,7 +20,16 @@ $filas = [
 
 // La prueba de conexión gasta 1 llamada: solo al pulsar el botón (POST + CSRF).
 $filas['Conexión Holded'] = 'sin probar (gasta 1 llamada)';
-if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+$msgFirma = null;
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['firma'])) {
+    Auth::comprobarCsrf();
+    try {
+        (new Avisos(store()))->guardarSecretoFirma((string) $_POST['firma']);
+        $msgFirma = 'Secreto guardado.';
+    } catch (ErrorUsuario $e) {
+        $msgFirma = $e->getMessage();
+    }
+} elseif (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     Auth::comprobarCsrf();
     $t = microtime(true);
     try {
@@ -36,6 +45,7 @@ $cron = store()->leer('cron');
 $filas['Última revisión de avisos'] = $cron ? date('d/m/Y H:i', strtotime($cron['t'])) . ': ' . implode('; ', $cron['resultado']) : 'nunca (falta la tarea programada)';
 $ev = store()->leer('eventos', []);
 $filas['Webhooks recibidos'] = $ev ? count($ev) . ', el último el ' . date('d/m/Y H:i', strtotime(end($ev)['t'])) . ' (' . end($ev)['tipo'] . ')' : 'ninguno todavía';
+$filas['Firma de los webhooks'] = $av->secretoFirma() !== '' ? 'se comprueba (secreto guardado)' : 'sin secreto: falta pegarlo abajo';
 $filas['Móviles con avisos'] = (string) count($av->config()['subs']);
 $foto = store()->leer('foto');
 $filas['Foto del panel'] = is_array($foto) && isset($foto['t']) ? date('d/m/Y H:i', $foto['t']) . ', ' . (int) ($foto['ajustes'] ?? 0) . ' ajustes desde Waylet' : 'aún no hay';
@@ -60,7 +70,13 @@ echo barra('');
     <h2 class="sub2">Webhook de Holded</h2>
     <p class="nota">URL (es secreta, no la compartas):</p>
     <p><code><?= e($av->urlWebhook()) ?></code></p>
-    <p class="nota">Eventos: purchase.create, purchase.update, purchase.approve, purchase.delete, invoice.create, invoice.update, invoice.approve, invoice.delete, payment.create, payment.update, payment.delete.</p>
+    <p class="nota">En Holded, en la sección de webhooks (Nuevo webhook), marca todas las acciones de estas tres áreas: <b>Compra</b> (Compras), <b>Factura</b> y <b>Pago</b>.</p>
+    <p class="nota">Al crearlo, Holded enseña una sola vez el secreto de firma (empieza por whsec_). Pégalo aquí:</p>
+    <form method="post" action="/diag.php" class="form"><input type="hidden" name="csrf" value="<?= e(Auth::csrf()) ?>">
+      <input name="firma" autocomplete="off" placeholder="whsec_…" aria-label="Secreto de firma de Holded">
+      <button class="secundario" type="submit">Guardar secreto</button>
+      <?php if ($msgFirma): ?><p class="nota"><?= e($msgFirma) ?></p><?php endif; ?>
+    </form>
     <form method="post" action="/diag.php"><input type="hidden" name="csrf" value="<?= e(Auth::csrf()) ?>"><button class="secundario" type="submit">Probar conexión con Holded</button></form>
   </section>
 </main>

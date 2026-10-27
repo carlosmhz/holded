@@ -148,26 +148,69 @@ final class Avisos
 
     /* ── webhooks de Holded ── */
 
-    /** Guarda un evento recibido y, si es una compra de un proveedor con caja y saldo, avisa. */
-    public function eventoHolded(array $in, string $cabeceraEvento, ?array $datosPanel): array
+    /** Secreto de firma de Holded (whsec_…), guardado desde /diag.php. */
+    public function secretoFirma(): string
     {
-        $doc = is_array($in['data'] ?? null) ? $in['data'] : (is_array($in['document'] ?? null) ? $in['document'] : $in);
-        $tipo = (string) ($in['event'] ?? $in['type'] ?? $in['action'] ?? $cabeceraEvento);
+        return (string) ($this->s->leer('secretos', [])['firma'] ?? '');
+    }
+
+    public function guardarSecretoFirma(string $secreto): void
+    {
+        $secreto = trim($secreto);
+        if ($secreto !== '' && !preg_match('/^whsec_[A-Za-z0-9+\/=_\-]{10,200}$/', $secreto)) {
+            throw new ErrorUsuario('El secreto debe empezar por whsec_');
+        }
+        $this->s->actualizar('secretos', function ($g) use ($secreto) {
+            $g = is_array($g) ? $g : [];
+            $g['firma'] = $secreto;
+            return $g;
+        }, []);
+    }
+
+    /**
+     * Comprueba la firma de Holded: HMAC-SHA256 de "<x-holded-webhook-date>.<cuerpo>" con el secreto whsec_,
+     * en hexadecimal, en la cabecera x-holded-webhook-signature ("sha256=…").
+     */
+    public function firmaValida(string $cuerpo, string $fecha, string $firma): bool
+    {
+        $secreto = $this->secretoFirma();
+        if ($secreto === '') {
+            return true; // aún sin secreto guardado: basta la clave de la URL
+        }
+        $esperada = hash_hmac('sha256', $fecha . '.' . $cuerpo, $secreto);
+        return $fecha !== '' && hash_equals($esperada, preg_replace('/^sha256=/', '', $firma));
+    }
+
+    /**
+     * Guarda un evento recibido (formato de Holded: evento en la cabecera x-holded-webhook-event y
+     * cuerpo con type, contactName, documentNumber, total…) y, si es una compra de un proveedor con
+     * caja y saldo, avisa. $id = x-holded-webhook-id (los reintentos repiten el id: no se duplica).
+     */
+    public function eventoHolded(array $in, string $evento, string $id, ?array $datosPanel): ?array
+    {
+        $tipo = $evento !== '' ? $evento : (string) ($in['event'] ?? '');
         $ev = [
             't' => date('c'),
+            'id' => mb_substr($id, 0, 80),
             'tipo' => mb_substr($tipo, 0, 40),
-            'contacto' => mb_substr((string) ($doc['contactName'] ?? $doc['contact_name'] ?? $doc['contact']['name'] ?? ''), 0, 80),
-            'num' => mb_substr((string) ($doc['docNumber'] ?? $doc['doc_number'] ?? $doc['number'] ?? ''), 0, 40),
-            'total' => is_numeric($doc['total'] ?? null) ? (float) $doc['total'] : null,
+            'contacto' => mb_substr((string) ($in['contactName'] ?? ''), 0, 80),
+            'num' => mb_substr((string) ($in['documentNumber'] ?? ''), 0, 40),
+            'total' => is_numeric($in['total'] ?? null) ? (float) $in['total'] : null,
+            'borrador' => !empty($in['isDraft']),
         ];
-        if ($ev['tipo'] === '') {
-            $ev['crudo'] = mb_substr(json_encode($in, JSON_UNESCAPED_UNICODE) ?: '', 0, 600); // para ajustar el formato si hace falta
-        }
-        $this->s->actualizar('eventos', function ($l) use ($ev) {
+        $nuevo = true;
+        $this->s->actualizar('eventos', function ($l) use ($ev, &$nuevo) {
             $l = is_array($l) ? $l : [];
+            if ($ev['id'] !== '' && in_array($ev['id'], array_column($l, 'id'), true)) {
+                $nuevo = false;
+                return $l;
+            }
             $l[] = $ev;
             return array_slice($l, -300);
         }, []);
+        if (!$nuevo) {
+            return null;
+        }
 
         // Aviso: factura nueva de un proveedor cuya caja tiene saldo esperando
         if (str_starts_with($ev['tipo'], 'purchase.') && !str_ends_with($ev['tipo'], '.delete') && $datosPanel) {
@@ -176,7 +219,7 @@ final class Avisos
                 if ($caja !== null && $c['num'] === $caja && $c['saldo'] > 0.004) {
                     $this->enviar('factura', 'Factura de ' . $ev['contacto'] . ' recibida',
                         'La caja ' . $c['nombre'] . ' tiene ' . eur($c['saldo']) . ': págala desde la caja.', '/panel.php',
-                        'factura-' . $caja . '-' . ($ev['num'] ?: date('Y-m-d')));
+                        'factura-' . $caja . '-' . ($ev['num'] ?: date('Y-m')));
                 }
             }
         }

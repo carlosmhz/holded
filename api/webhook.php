@@ -1,8 +1,9 @@
 <?php
 /**
- * Webhook de Holded: POST /api/webhook.php?k=<clave secreta> (la clave se ve en /diag.php).
- * Guarda el evento (compras, facturas, pagos…) para que el panel avise de "cambios desde la foto"
- * y, si es una factura de un proveedor con caja pendiente, envía un aviso al móvil. Sin llamadas a Holded.
+ * Webhook de Holded: POST /api/webhook.php?k=<clave> (la URL completa se ve en /diag.php).
+ * Holded manda el evento en la cabecera x-holded-webhook-event y un resumen del documento en el cuerpo,
+ * firmado con HMAC-SHA256 (x-holded-webhook-signature) usando el secreto whsec_ que se guarda en /diag.php.
+ * Guarda el evento para el panel y, si toca, avisa al móvil. Sin llamadas a la API de Holded.
  */
 declare(strict_types=1);
 define('SIN_SESION', true);
@@ -16,17 +17,19 @@ if (!hash_equals($a->secretos()['webhook'], (string) ($_GET['k'] ?? ''))) {
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     jsonOut(['ok' => true]); // comprobación de la URL
 }
+$cuerpo = (string) file_get_contents('php://input', false, null, 0, 65537);
+if (!$a->firmaValida($cuerpo, (string) ($_SERVER['HTTP_X_HOLDED_WEBHOOK_DATE'] ?? ''), (string) ($_SERVER['HTTP_X_HOLDED_WEBHOOK_SIGNATURE'] ?? ''))) {
+    error_log('[holded] webhook: firma no válida');
+    jsonOut(['ok' => false], 401);
+}
 try {
-    $raw = file_get_contents('php://input', false, null, 0, 65537);
-    $in = json_decode((string) $raw, true);
-    if (!is_array($in) && is_string($raw)) {
-        parse_str($raw, $in); // por si llega como formulario
-    }
+    $in = json_decode($cuerpo, true);
     $p = new Panel(holded(), contabilidad(), store());
     $foto = $p->foto();
-    $a->eventoHolded(is_array($in) ? $in : [], (string) ($_SERVER['HTTP_X_HOLDED_EVENT'] ?? $_SERVER['HTTP_X_EVENT'] ?? ''), $foto ? $p->datos($foto) : null);
+    $a->eventoHolded(is_array($in) ? $in : [], (string) ($_SERVER['HTTP_X_HOLDED_WEBHOOK_EVENT'] ?? ''),
+        (string) ($_SERVER['HTTP_X_HOLDED_WEBHOOK_ID'] ?? ''), $foto ? $p->datos($foto) : null);
     jsonOut(['ok' => true]);
 } catch (Throwable $e) {
     error_log('[holded] webhook: ' . $e);
-    jsonOut(['ok' => false], 500);
+    jsonOut(['ok' => true]); // ya está guardado lo que se pudo; evitar reintentos en bucle
 }
