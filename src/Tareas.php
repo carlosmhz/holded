@@ -4,7 +4,8 @@ defined('APP_ROOT') || exit;
 
 /**
  * Tareas del mes. La lista se reinicia el DÍA 5 (algunas facturas llegan después del día 1):
- * el periodo "noviembre" va del 5 de noviembre al 4 de diciembre, y sus facturas a descargar son las de octubre.
+ * el periodo "octubre" va del 5 de octubre al 4 de noviembre y pide las facturas de octubre
+ * (que llegan a primeros de noviembre, antes del reinicio).
  * Se guarda en data_dir/tareas.json. No llama a Holded.
  */
 final class Tareas
@@ -21,11 +22,10 @@ final class Tareas
         return ((int) $hoy->format('j') >= self::DIA_REINICIO ? $hoy : $hoy->modify('first day of last month'))->format('Y-m');
     }
 
-    /** Lista de tareas del periodo. %ant% = mes anterior (el de las facturas). */
+    /** Lista de tareas del periodo (las facturas son las del mismo mes del periodo). */
     public static function lista(string $periodo): array
     {
-        $m = (int) substr($periodo, 5, 2);
-        $ant = self::MESES[($m + 10) % 12];
+        $ant = self::MESES[(int) substr($periodo, 5, 2) - 1];
         $drive = 'Déjala en Drive, carpeta Facturas → Holded.';
         return [
             ['id' => 'telpark',   'titulo' => "Descargar la factura de $ant de Telpark", 'ayuda' => "App o web, Mis facturas. $drive"],
