@@ -29,7 +29,7 @@ cabecera('Configuración inicial · MPI Holded');
 ?>
 <main class="acceso">
   <div class="caja-login">
-    <img class="logo" src="/assets/logo-tarjeta.png" alt="" width="120" height="78">
+    <img class="logo" src="/assets/logo-tarjeta.png?v=4" alt="" width="120" height="78">
     <h1>Configuración inicial</h1>
     <p class="sub">No se guarda nada aquí: copia los valores en config.php, fuera de public_html.</p>
     <div class="form">

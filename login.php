@@ -31,7 +31,7 @@ cabecera('Entrar · MPI Holded');
 ?>
 <main class="acceso">
   <div class="caja-login">
-    <img class="logo" src="/assets/logo-tarjeta.png" alt="" width="120" height="78">
+    <img class="logo" src="/assets/logo-tarjeta.png?v=4" alt="" width="120" height="78">
     <h1>MPI Holded</h1>
     <p class="sub">Contabilidad de MPI. Acceso privado.</p>
     <form class="form" method="post" action="/login.php" autocomplete="on">

@@ -19,8 +19,8 @@ function cabecera(string $titulo, array $js = [], string $claseBody = ''): void
         '<meta name="csrf" content="', e($csrf), '">',
         '<title>', e($titulo), '</title>',
         '<link rel="manifest" href="/manifest.webmanifest">',
-        '<link rel="icon" href="/assets/favicon.png" type="image/png">',
-        '<link rel="apple-touch-icon" href="/assets/icon-180.png">',
+        '<link rel="icon" href="/assets/favicon.png?v=4" type="image/png">',
+        '<link rel="apple-touch-icon" href="/assets/icon-180.png?v=4">',
         '<link rel="preload" href="/assets/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>',
         '<link rel="stylesheet" href="/assets/app.css?v=', $v, '">',
         '<script src="/assets/app.js?v=', $v, '" defer></script>';
@@ -46,7 +46,7 @@ function botonSalir(): string
 function barra(string $actual): string
 {
     $enlace = fn(string $url, string $txt) => '<a href="' . $url . '"' . ($actual === $url ? ' aria-current="page"' : '') . '>' . $txt . '</a>';
-    return '<header class="barra"><a class="marca" href="/panel.php"><img src="/assets/logo-tarjeta.png" alt="" width="38" height="25"><span>MPI Holded</span></a>'
+    return '<header class="barra"><a class="marca" href="/panel.php"><img src="/assets/logo-tarjeta.png?v=4" alt="" width="38" height="25"><span>MPI Holded</span></a>'
         . '<nav class="nav" aria-label="Secciones">' . $enlace('/panel.php', 'Panel') . $enlace('/waylet.php', 'Waylet') . '</nav>'
         . botonSalir() . '</header>';
 }
