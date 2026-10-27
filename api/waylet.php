@@ -13,7 +13,16 @@ $w = new Waylet(contabilidad(), holded(), cfg()['escritura_holded']);
 try {
     $metodo = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     if ($metodo === 'GET') {
-        jsonOut(['saldo' => $w->saldo(), 'prueba' => !cfg()['escritura_holded']]);
+        $r = ['saldo' => $w->saldo(), 'prueba' => !cfg()['escritura_holded']];
+        if (isset($_GET['mov'])) {
+            try {
+                $r['movimientos'] = $w->movimientos();
+            } catch (Throwable $e) {
+                $r['movimientos'] = null;
+                error_log('[holded] movimientos Waylet: ' . $e->getMessage());
+            }
+        }
+        jsonOut($r);
     }
     if ($metodo !== 'POST') {
         jsonOut(['error' => 'Método no permitido'], 405);

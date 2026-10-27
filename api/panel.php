@@ -23,7 +23,8 @@ try {
         jsonOut(['error' => 'Método no permitido'], 405);
     }
     @set_time_limit(90);
-    jsonOut((new Panel(holded(), contabilidad(), store()))->datos());
+    $p = new Panel(holded(), contabilidad(), store());
+    jsonOut(($_GET['parte'] ?? '') === 'meses' ? $p->meses() : $p->datos());
 } catch (ErrorUsuario $e) {
     jsonOut(['error' => $e->getMessage()], 400);
 } catch (Throwable $e) {

@@ -1,56 +1,55 @@
 'use strict';
 (function () {
+  var M = window.MPI, eur = M.eur, esc = M.esc;
   var $ = function (id) { return document.getElementById(id); };
-  var csrf = document.querySelector('meta[name="csrf"]').content;
   var T = 1, K = 'factura';
-  var h = $('h'), m = $('m'), b = $('b'), f = $('f');
+  var m = $('m'), b = $('b'), f = $('f');
+  var BOTON = { 1: 'Añadir al monedero', 2: 'Quitar del monedero', 3: 'Ajustar al saldo de la app' };
 
   var hoy = new Date();
   f.value = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
-  function eur(v) {
-    return (v < 0 ? '−' : '') + Math.abs(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €';
-  }
-  function msg(cl, t) { m.className = cl; m.textContent = t; }
+  function api(metodo, cuerpo) { return M.api('/api/waylet.php' + (metodo === 'GET' ? '?mov=1' : ''), metodo, cuerpo, '/waylet.php'); }
+  function msg(cl, t) { m.className = 'resultado-op ' + cl; m.textContent = t; }
 
-  function api(metodo, cuerpo) {
-    var op = { method: metodo, credentials: 'same-origin', headers: { 'Accept': 'application/json' } };
-    if (cuerpo) {
-      op.headers['Content-Type'] = 'application/json';
-      op.headers['X-CSRF-Token'] = csrf;
-      op.body = JSON.stringify(cuerpo);
-    }
-    return fetch('/api/waylet.php', op).then(function (r) {
-      return r.json().catch(function () { return { error: 'Respuesta no válida (' + r.status + ')' }; }).then(function (d) {
-        if (r.status === 401 && d.login) { location.href = '/login.php?next=' + encodeURIComponent('/waylet.php'); }
-        if (!r.ok || d.error) { throw new Error(d.error || ('Error ' + r.status)); }
-        return d;
-      });
-    });
+  function pintaMovs(l) {
+    var ul = $('movs');
+    if (l === null || l === undefined) { ul.innerHTML = '<li><span class="vacio">No se pudieron leer los movimientos.</span></li>'; return; }
+    if (!l.length) { ul.innerHTML = '<li><span class="vacio">Aún no hay movimientos este año.</span></li>'; $('ultimo').hidden = true; return; }
+    ul.innerHTML = l.map(function (x) {
+      return '<li><span>' + esc(x.concepto || 'Movimiento') + '<small>' + M.fechaLarga(x.fecha) + (x.n ? ', asiento ' + x.n : '') + '</small></span><b class="' + (x.importe < 0 ? 'neg' : 'pos') + '">' + eur(x.importe, true) + '</b></li>';
+    }).join('');
+    var u = l[0];
+    $('ult-txt').textContent = 'Último movimiento, ' + M.fechaLarga(u.fecha);
+    $('ult-v').textContent = eur(u.importe, true);
+    $('ultimo').hidden = false;
   }
 
   function carga() {
-    api('GET').then(function (d) { h.textContent = eur(d.saldo); }).catch(function () { h.textContent = 'error'; });
+    return api('GET').then(function (d) { $('h').textContent = eur(d.saldo); pintaMovs(d.movimientos); })
+      .catch(function (e) { $('h').textContent = '—'; msg('err', e.message); });
   }
 
   function tab(n) {
     T = n;
     [1, 2, 3].forEach(function (i) {
-      $('t' + i).className = i === n ? 'on' : '';
+      $('t' + i).setAttribute('aria-selected', i === n ? 'true' : 'false');
       $('p' + i).className = 'p' + (i === n ? ' on' : '');
     });
-    $('fw').style.display = n === 3 ? 'none' : 'block';
-    msg('', '');
+    $('fw').hidden = n === 3;
+    b.textContent = BOTON[n];
+    m.className = 'resultado-op';
+    ($('a q s'.split(' ')[n - 1])).focus();
   }
 
   function tipo(t) {
     K = t;
-    $('k1').className = t === 'factura' ? 'on' : '';
-    $('k2').className = t === 'gasto' ? 'on' : '';
+    $('k1').setAttribute('aria-pressed', t === 'factura' ? 'true' : 'false');
+    $('k2').setAttribute('aria-pressed', t === 'gasto' ? 'true' : 'false');
     $('hk').textContent = t === 'factura'
-      ? 'Va a la caja Pagos Waylet. Cuando llegue la factura, págala desde esa caja.'
-      : 'Va a la 550 (uso personal): lavados y otros gastos sin factura.';
-    $('cq').placeholder = t === 'factura' ? 'Ej.: Repsol Ciudad Rodrigo' : 'Ej.: Lavado';
+      ? 'Cuando llegue la factura, págala desde la caja Pagos Waylet.'
+      : 'Uso personal (cuenta 550): no espera factura.';
+    $('cq').placeholder = t === 'factura' ? 'Repsol Ciudad Rodrigo' : 'Lavado';
   }
 
   function num(el) { return parseFloat(el.value.trim().replace(',', '.')); }
@@ -58,24 +57,21 @@
   function go() {
     var campo = T === 1 ? $('a') : T === 2 ? $('q') : $('s');
     var v = num(campo);
-    if (isNaN(v)) { msg('e', 'Escribe un importe'); return; }
+    if (isNaN(v)) { msg('err', 'Escribe un importe.'); campo.focus(); return; }
     var cuerpo = T === 1 ? { accion: 'anadir', importe: v, fecha: f.value }
       : T === 2 ? { accion: 'quitar', importe: v, tipo: K, concepto: $('cq').value, fecha: f.value }
       : { accion: 'ajustar', saldo: v };
-    b.disabled = true; msg('', 'Guardando…');
+    b.disabled = true; msg('', ''); b.textContent = 'Guardando…';
     api('POST', cuerpo).then(function (d) {
-      msg(d.prueba ? 'w' : 'k', d.mensaje);
+      msg(d.prueba ? 'prueba' : 'ok', d.mensaje);
       if (!d.prueba) { $('a').value = $('q').value = $('s').value = $('cq').value = ''; }
-      if (typeof d.saldo === 'number' && !d.prueba) { h.textContent = eur(d.saldo); } else { carga(); }
-    }).catch(function (e) { msg('e', e.message); }).then(function () { b.disabled = false; });
+      return carga();
+    }).catch(function (e) { msg('err', e.message); }).then(function () { b.disabled = false; b.textContent = BOTON[T]; });
   }
 
-  document.querySelectorAll('[data-tab]').forEach(function (el) {
-    el.addEventListener('click', function () { tab(+el.dataset.tab); });
-  });
-  document.querySelectorAll('[data-tipo]').forEach(function (el) {
-    el.addEventListener('click', function () { tipo(el.dataset.tipo); });
-  });
+  document.querySelectorAll('[data-tab]').forEach(function (el) { el.addEventListener('click', function () { tab(+el.dataset.tab); }); });
+  document.querySelectorAll('[data-tipo]').forEach(function (el) { el.addEventListener('click', function () { tipo(el.dataset.tipo); }); });
   b.addEventListener('click', go);
+  ['a', 'q', 's'].forEach(function (id) { $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') { go(); } }); });
   carga();
 })();

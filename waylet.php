@@ -4,45 +4,58 @@ require __DIR__ . '/src/bootstrap.php';
 
 Auth::exigirPagina();
 $prueba = !cfg()['escritura_holded'];
-cabecera('Saldo Waylet', ['waylet.js']);
+cabecera('Waylet · MPI Holded', ['waylet.js']);
+echo barra('/waylet.php');
 ?>
-<div class="c">
-  <div class="top"><h1>Saldo Waylet</h1><span class="acc"><a href="/panel.php">📊 Panel</a> <?= botonSalir() ?></span></div>
-  <p class="sub">Holded: <b id="h">…</b></p>
-  <?php if ($prueba): ?><p class="av">MODO PRUEBA: no se crea nada en Holded (escritura_holded = false en el config).</p><?php endif; ?>
+<main class="pagina estrecha">
+  <section class="tarjeta" aria-labelledby="t-mon">
+    <p class="etq" id="t-mon">Monedero Waylet</p>
+    <p class="cifra" id="h">—</p>
+    <p class="nota">Saldo en Holded. Debe coincidir con la app de Repsol Waylet.</p>
+    <div class="flecha" id="ultimo" hidden><span id="ult-txt"></span><b id="ult-v"></b></div>
+  </section>
+  <?php if ($prueba): ?><p class="aviso">Modo prueba: no se crea nada en Holded (escritura_holded está en false).</p><?php endif; ?>
 
-  <div class="tabs" role="tablist">
-    <button type="button" id="t1" class="on" data-tab="1">➕ Añadir</button>
-    <button type="button" id="t2" data-tab="2">➖ Quitar</button>
-    <button type="button" id="t3" data-tab="3">🎯 Ajustar</button>
+  <div class="segmentos" role="tablist" aria-label="Operación">
+    <button type="button" role="tab" id="t1" aria-selected="true" aria-controls="p1" data-tab="1">Añadir</button>
+    <button type="button" role="tab" id="t2" aria-selected="false" aria-controls="p2" data-tab="2">Quitar</button>
+    <button type="button" role="tab" id="t3" aria-selected="false" aria-controls="p3" data-tab="3">Ajustar</button>
   </div>
 
-  <div id="p1" class="p on">
-    <label for="a">Importe que se suma (bonificación, cupón…)</label>
-    <input id="a" class="big" inputmode="decimal" placeholder="0,00" autocomplete="off">
-  </div>
-
-  <div id="p2" class="p">
-    <label for="q">Importe gastado</label>
-    <input id="q" class="big" inputmode="decimal" placeholder="0,00" autocomplete="off">
-    <label>¿En qué?</label>
-    <div class="tipo">
-      <button type="button" id="k1" class="on" data-tipo="factura">⛽ Pago con factura</button>
-      <button type="button" id="k2" data-tipo="gasto">🧽 Sin factura</button>
+  <div class="form">
+    <div id="p1" class="p on" role="tabpanel" aria-labelledby="t1">
+      <label for="a">Bonificación o cupón que entra</label>
+      <input id="a" class="importe" inputmode="decimal" placeholder="0,00" autocomplete="off">
+      <p class="ayuda">Se apunta como bonificación (629) y sube el saldo del monedero.</p>
     </div>
-    <p class="hint" id="hk">Va a la caja Pagos Waylet. Cuando llegue la factura, págala desde esa caja.</p>
-    <label for="cq">Concepto (opcional)</label>
-    <input id="cq" maxlength="100" placeholder="Ej.: Repsol Ciudad Rodrigo" autocomplete="off">
+
+    <div id="p2" class="p" role="tabpanel" aria-labelledby="t2">
+      <label for="q">Importe pagado con el saldo</label>
+      <input id="q" class="importe" inputmode="decimal" placeholder="0,00" autocomplete="off">
+      <label>¿Tiene factura?</label>
+      <div class="tipo">
+        <button type="button" id="k1" aria-pressed="true" data-tipo="factura">Con factura<small>Repostaje: va a Pagos Waylet</small></button>
+        <button type="button" id="k2" aria-pressed="false" data-tipo="gasto">Sin factura<small>Lavados y similares: va a la 550</small></button>
+      </div>
+      <p class="ayuda" id="hk">Cuando llegue la factura, págala desde la caja Pagos Waylet.</p>
+      <label for="cq">Concepto (opcional)</label>
+      <input id="cq" maxlength="100" placeholder="Repsol Ciudad Rodrigo" autocomplete="off">
+    </div>
+
+    <div id="p3" class="p" role="tabpanel" aria-labelledby="t3">
+      <label for="s">Saldo que marca ahora la app</label>
+      <input id="s" class="importe" inputmode="decimal" placeholder="0,00" autocomplete="off">
+      <p class="ayuda">Se apunta la diferencia con Holded como bonificación (629), con fecha de hoy.</p>
+    </div>
+
+    <div id="fw"><label for="f">Fecha</label><input id="f" type="date"></div>
+    <button class="guardar" id="b" type="button">Añadir al monedero</button>
+    <div id="m" class="resultado-op" aria-live="polite"></div>
   </div>
 
-  <div id="p3" class="p">
-    <label for="s">Saldo actual en la app de Waylet</label>
-    <input id="s" class="big" inputmode="decimal" placeholder="0,00" autocomplete="off">
-    <p class="hint">La diferencia con Holded se apunta como bonificación (629).</p>
-  </div>
-
-  <div id="fw"><label for="f">Fecha</label><input id="f" type="date"></div>
-  <button class="go" id="b" type="button">Guardar en Holded</button>
-  <div id="m" aria-live="polite"></div>
-</div>
+  <section class="movs hoja" aria-labelledby="t-movs">
+    <h2 id="t-movs">Movimientos de este año</h2>
+    <ul class="filas" id="movs"><li><span class="vacio">Cargando…</span></li></ul>
+  </section>
+</main>
 <?php pie();

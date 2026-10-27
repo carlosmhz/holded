@@ -30,13 +30,15 @@ $a = store()->leer('asientos');
 $filas['Hoja Asientos'] = $a ? count($a['filas']) . ' filas · generado ' . $a['generado'] . ' · recibido ' . $a['recibido'] : 'aún no se ha recibido nada';
 $filas['Caché'] = count(glob($c['data_dir'] . '/cache/*.json') ?: []) . ' archivos';
 
-cabecera('Diagnóstico');
+cabecera('Diagnóstico · MPI Holded');
+echo barra('');
 ?>
-<div class="c">
-  <div class="top"><h1>Diagnóstico</h1><?= botonSalir() ?></div>
-  <p class="sub"><a href="/waylet.php">← Waylet</a></p>
-  <table class="diag">
-    <?php foreach ($filas as $k => $v): ?><tr><td><?= e($k) ?></td><td><?= e($v) ?></td></tr><?php endforeach; ?>
-  </table>
-</div>
+<main class="pagina estrecha">
+  <section class="hoja">
+    <h2>Diagnóstico</h2><p class="bajo">Estado del servidor y de la conexión con Holded.</p>
+    <table class="diag">
+      <?php foreach ($filas as $k => $v): ?><tr><td><?= e($k) ?></td><td><?= e($v) ?></td></tr><?php endforeach; ?>
+    </table>
+  </section>
+</main>
 <?php pie();

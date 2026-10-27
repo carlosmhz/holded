@@ -29,18 +29,21 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 
 cabecera('Entrar · MPI Holded');
 ?>
-<div class="c">
-  <h1>MPI · Holded</h1>
-  <p class="sub">Acceso privado</p>
-  <form method="post" action="/login.php" autocomplete="on">
-    <input type="hidden" name="csrf" value="<?= e(Auth::csrf()) ?>">
-    <input type="hidden" name="next" value="<?= e($next) ?>">
-    <label for="u">Usuario</label>
-    <input id="u" name="usuario" autocomplete="username" autocapitalize="none" required>
-    <label for="p">Contraseña</label>
-    <input id="p" name="clave" type="password" autocomplete="current-password" required>
-    <button class="go" type="submit">Entrar</button>
-    <?php if ($error): ?><div id="m" class="e"><?= e($error) ?></div><?php endif; ?>
-  </form>
-</div>
+<main class="acceso">
+  <div class="caja-login">
+    <img class="logo" src="/assets/logo-tarjeta.png" alt="" width="120" height="78">
+    <h1>MPI Holded</h1>
+    <p class="sub">Contabilidad de MPI. Acceso privado.</p>
+    <form class="form" method="post" action="/login.php" autocomplete="on">
+      <input type="hidden" name="csrf" value="<?= e(Auth::csrf()) ?>">
+      <input type="hidden" name="next" value="<?= e($next) ?>">
+      <label for="u">Usuario</label>
+      <input id="u" name="usuario" autocomplete="username" autocapitalize="none" required>
+      <label for="p">Contraseña</label>
+      <input id="p" name="clave" type="password" autocomplete="current-password" required>
+      <button class="guardar" type="submit">Entrar</button>
+      <?php if ($error): ?><p class="error" role="alert"><?= e($error) ?></p><?php endif; ?>
+    </form>
+  </div>
+</main>
 <?php pie();

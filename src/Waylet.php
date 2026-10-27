@@ -22,6 +22,25 @@ final class Waylet
         return $this->c->saldoCaja(self::CUENTA);
     }
 
+    /** Últimos movimientos del monedero en el año en curso (solo lectura). */
+    public function movimientos(int $max = 8): array
+    {
+        $anio = Contabilidad::anioActual();
+        $hoy = hoyISO();
+        $fin = (new DateTimeImmutable($hoy))->modify('+1 day')->format('Y-m-d');
+        $l = [];
+        foreach ($this->h->lineas(['start_date' => ($anio - 1) . '-12-31', 'end_date' => $fin, 'account' => self::CUENTA]) as $i) {
+            $f = preg_match('#^(\d{2})/(\d{2})/(\d{4})#', (string) ($i['date'] ?? ''), $m) ? "$m[3]-$m[2]-$m[1]" : substr((string) ($i['date'] ?? ''), 0, 10);
+            if ((int) ($i['account'] ?? 0) !== self::CUENTA || $f > $hoy || substr($f, 0, 4) !== (string) $anio) {
+                continue;
+            }
+            $l[] = ['fecha' => $f, 'n' => (int) ($i['entry_number'] ?? 0), 'concepto' => (string) ($i['description'] ?? ''),
+                'importe' => r2(num($i['debit'] ?? 0) - num($i['credit'] ?? 0))];
+        }
+        usort($l, fn($a, $b) => [$b['fecha'], $b['n']] <=> [$a['fecha'], $a['n']]);
+        return array_slice($l, 0, $max);
+    }
+
     private static function importe(mixed $v): float
     {
         $n = r2(num($v));

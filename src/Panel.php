@@ -80,7 +80,7 @@ final class Panel
     /** resumen_(): reduce la lista de cuentas a lo que usa el panel. */
     private function resumen(array $items): array
     {
-        $o = ['ing' => 0.0, 'gas' => 0.0, 'noDed' => 0.0, 'p473' => 0.0, 'p130' => 0.0, 'rep' => 0.0, 'sop' => 0.0, 'cta' => []];
+        $o = ['ing' => 0.0, 'gas' => 0.0, 'noDed' => 0.0, 'p473' => 0.0, 'p130' => 0.0, 'rep' => 0.0, 'sop' => 0.0, 'cta' => [], 'gc' => []];
         $nums = array_column(self::SALDOS, 0);
         foreach ($items as $c) {
             $num = (string) $c['number'];
@@ -100,6 +100,7 @@ final class Panel
                 $o['ing'] += $h - $d;
             } elseif ($num[0] === '6') {
                 $o['gas'] += $d - $h;
+                $o['gc'][$num] = ['n' => trim((string) ($c['name'] ?? $num)), 'g' => $d - $h];
                 if (!empty($c['non_deductible'])) {
                     $o['noDed'] += $d - $h;
                 }
@@ -114,22 +115,6 @@ final class Panel
             }
         }
         return $o;
-    }
-
-    /** Todas las líneas del libro diario entre dos fechas (paginación por cursor). */
-    private function lineas(array $q): array
-    {
-        $out = [];
-        $q['limit'] = 200;
-        for ($pag = 0; $pag < 20; $pag++) {
-            $r = $this->h->peticion('GET', '/ledger-entries', $q);
-            array_push($out, ...($r['items'] ?? []));
-            if (empty($r['has_more']) || empty($r['cursor'])) {
-                break;
-            }
-            $q['cursor'] = $r['cursor'];
-        }
-        return $out;
     }
 
     public function datos(): array
@@ -184,7 +169,8 @@ final class Panel
 
         // Saldos: años cerrados (caché) + año en curso por fechas; las cajas, sin fechas + arrastre
         $cta = [];
-        $intenta('saldos', function () use (&$cta, $anio, $hoy, $bancoReal) {
+        $ytd = null;
+        $intenta('saldos', function () use (&$cta, &$ytd, $anio, $hoy, $bancoReal) {
             $previo = [];
             for ($y = Contabilidad::ANIO_INICIO; $y < $anio; $y++) {
                 foreach ($this->c->saldosAnio($y) as $k => $v) {
@@ -192,7 +178,8 @@ final class Panel
                     $cta[$k] = ['b' => $previo[$k], 'n' => $v['n']];
                 }
             }
-            foreach ($this->resumen($this->h->cuentas(($anio - 1) . '-12-31', $hoy))['cta'] as $k => $v) {
+            $ytd = $this->resumen($this->h->cuentas(($anio - 1) . '-12-31', $hoy));
+            foreach ($ytd['cta'] as $k => $v) {
                 $cta[$k] = ['b' => ($cta[$k]['b'] ?? 0.0) + $v['b'], 'n' => $v['n']];
             }
             // Cajas: saldo sin fechas (con fechas Holded no devuelve algunas cuentas, p. ej. 57000005) + arrastre
@@ -220,9 +207,9 @@ final class Panel
             $P = ['ing' => 0.0, 'gas' => 0.0, 'noDed' => 0.0, 'p473' => 0.0];
             $Q = ['p130' => 0.0];
             if ($tri > 1) {
-                $P = $this->s->cache("ytd{$anio}_$tri", 86400, fn() => array_diff_key($this->resumen($this->h->cuentas(($anio - 1) . '-12-31', $finTriPrev)), ['cta' => 1]));
+                $P = $this->s->cache("ytd{$anio}_$tri", 86400, fn() => array_diff_key($this->resumen($this->h->cuentas(($anio - 1) . '-12-31', $finTriPrev)), ['cta' => 1, 'gc' => 1]));
                 // Desde el 31/1: el pago de enero (4T del año anterior) no cuenta
-                $Q = $this->s->cache("p130_{$anio}_$tri", 86400, fn() => array_diff_key($this->resumen($this->h->cuentas($anio . '-01-31', $finTriPrev, (string) self::PAGOS_130)), ['cta' => 1]));
+                $Q = $this->s->cache("p130_{$anio}_$tri", 86400, fn() => array_diff_key($this->resumen($this->h->cuentas($anio . '-01-31', $finTriPrev, (string) self::PAGOS_130)), ['cta' => 1, 'gc' => 1]));
             }
             $ing = $P['ing'] + $C['ing'];
             $gas = $P['gas'] + $C['gas'];
@@ -239,6 +226,18 @@ final class Panel
                 'repercutido' => r2($C['rep']), 'soportado' => r2($C['sop']), 'm303' => r2($C['rep'] - $C['sop']),
             ];
         });
+
+        // Reparto de gastos del año hasta hoy: las 6 cuentas mayores + "Resto"
+        if ($ytd !== null) {
+            $g = array_values(array_filter($ytd['gc'], fn($x) => $x['g'] > 0.004));
+            usort($g, fn($a, $b) => $b['g'] <=> $a['g']);
+            $top = array_map(fn($x) => ['nombre' => $x['n'], 'importe' => r2($x['g'])], array_slice($g, 0, 6));
+            $resto = r2(array_sum(array_column(array_slice($g, 6), 'g')));
+            if ($resto > 0) {
+                $top[] = ['nombre' => 'Resto (' . (count($g) - 6) . ' cuentas)', 'importe' => $resto];
+            }
+            $out['gastosCuenta'] = $top;
+        }
 
         // Pendientes por saldo de cuenta (sin llamadas extra)
         $pendientes = function (array $pref, int $signo) use ($cta) {
@@ -281,7 +280,7 @@ final class Panel
             }
             // Asientos futuros de banco y tarjeta (fecha > hoy). Se pide un día más y se filtra,
             // para no depender de si Holded incluye o no los extremos del rango.
-            foreach ($this->lineas(['start_date' => $hoy, 'end_date' => self::sumarDias($limS, 1)]) as $i) {
+            foreach ($this->h->lineas(['start_date' => $hoy, 'end_date' => self::sumarDias($limS, 1)]) as $i) {
                 $cuenta = (int) ($i['account'] ?? 0);
                 $imp = num($i['credit'] ?? 0);
                 $f = self::iso($i['date'] ?? '');
@@ -328,7 +327,7 @@ final class Panel
             }
             $cuota = $this->s->cache('cuotaAut', 86400, function () use ($hoy) {
                 $ult = null;
-                foreach ($this->lineas(['start_date' => self::sumarDias($hoy, -62), 'end_date' => self::sumarDias($hoy, 1), 'account' => self::AUTONOMOS]) as $i) {
+                foreach ($this->h->lineas(['start_date' => self::sumarDias($hoy, -62), 'end_date' => self::sumarDias($hoy, 1), 'account' => self::AUTONOMOS]) as $i) {
                     $f = self::iso($i['date'] ?? '');
                     if (num($i['debit'] ?? 0) > 0 && $f <= $hoy && ($ult === null || $f > $ult['f'])) {
                         $ult = ['f' => $f, 'imp' => num($i['debit'])];
@@ -344,5 +343,39 @@ final class Panel
         });
 
         return $out;
+    }
+
+    /**
+     * Ingresos y gastos de cada mes del año en curso (mismos criterios que el resultado).
+     * Meses cerrados en caché 7 días; el mes en curso, hasta hoy. Consultas en paralelo.
+     */
+    public function meses(): array
+    {
+        $hoy = hoyISO();
+        [$anio, $mes] = array_map('intval', explode('-', $hoy));
+        $out = [];
+        $pedir = [];
+        for ($m = 1; $m <= $mes; $m++) {
+            $clave = sprintf('mes%d_%02d', $anio, $m);
+            $g = $m < $mes ? $this->s->leer('cache/' . $clave) : null;
+            if (is_array($g) && time() - (int) $g['t'] < 7 * 86400) {
+                $out[$m] = $g['v'];
+            } else {
+                $pedir[$m] = ['/accounting-accounts', ['start_date' => self::f($anio, $m - 1, 0), 'end_date' => $m === $mes ? $hoy : self::f($anio, $m, 0)]];
+            }
+        }
+        foreach ($pedir ? $this->h->variosGet($pedir) : [] as $m => $d) {
+            $r = $this->resumen($d['items'] ?? []);
+            $out[$m] = ['ing' => r2($r['ing']), 'gas' => r2($r['gas'])];
+            if ($m < $mes) {
+                $this->s->escribir('cache/' . sprintf('mes%d_%02d', $anio, $m), ['t' => time(), 'v' => $out[$m]]);
+            }
+        }
+        ksort($out);
+        $l = [];
+        foreach ($out as $m => $v) {
+            $l[] = ['mes' => sprintf('%d-%02d', $anio, $m), 'ing' => $v['ing'], 'gas' => $v['gas']];
+        }
+        return ['anio' => $anio, 'meses' => $l];
     }
 }

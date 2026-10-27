@@ -25,23 +25,28 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $hash = password_hash($p1, PASSWORD_DEFAULT);
     }
 }
-cabecera('Configuración inicial');
+cabecera('Configuración inicial · MPI Holded');
 ?>
-<div class="c">
-  <h1>Configuración inicial</h1>
-  <p class="sub">No se guarda nada aquí: copia los valores en <code>config.php</code> (fuera de public_html).</p>
-  <?php if ($hash): ?>
-    <label>password_hash</label><p><code><?= e($hash) ?></code></p>
-    <label>asientos_token (aleatorio, para la cabecera X-Token)</label><p><code><?= e(bin2hex(random_bytes(32))) ?></code></p>
-    <p class="hint">Cuando pegues el hash, esta página dejará de funcionar.</p>
-  <?php else: ?>
-  <form method="post" action="/setup.php">
-    <input type="hidden" name="csrf" value="<?= e(Auth::csrf()) ?>">
-    <label for="p1">Contraseña (mín. 12 caracteres)</label><input id="p1" name="p1" type="password" autocomplete="new-password" required>
-    <label for="p2">Repite la contraseña</label><input id="p2" name="p2" type="password" autocomplete="new-password" required>
-    <button class="go" type="submit">Generar hash</button>
-    <?php if ($error): ?><div id="m" class="e"><?= e($error) ?></div><?php endif; ?>
-  </form>
-  <?php endif; ?>
-</div>
+<main class="acceso">
+  <div class="caja-login">
+    <img class="logo" src="/assets/logo-tarjeta.png" alt="" width="120" height="78">
+    <h1>Configuración inicial</h1>
+    <p class="sub">No se guarda nada aquí: copia los valores en config.php, fuera de public_html.</p>
+    <div class="form">
+    <?php if ($hash): ?>
+      <label>password_hash</label><p><code><?= e($hash) ?></code></p>
+      <label>asientos_token (para la cabecera X-Token)</label><p><code><?= e(bin2hex(random_bytes(32))) ?></code></p>
+      <p class="ayuda">Cuando pegues el hash en config.php, esta página dejará de funcionar.</p>
+    <?php else: ?>
+      <form method="post" action="/setup.php">
+        <input type="hidden" name="csrf" value="<?= e(Auth::csrf()) ?>">
+        <label for="p1">Contraseña (mínimo 12 caracteres)</label><input id="p1" name="p1" type="password" autocomplete="new-password" required>
+        <label for="p2">Repite la contraseña</label><input id="p2" name="p2" type="password" autocomplete="new-password" required>
+        <button class="guardar" type="submit">Generar hash</button>
+        <?php if ($error): ?><p class="error" role="alert"><?= e($error) ?></p><?php endif; ?>
+      </form>
+    <?php endif; ?>
+    </div>
+  </div>
+</main>
 <?php pie();
