@@ -45,6 +45,12 @@ $cron = store()->leer('cron');
 $filas['Última revisión de avisos'] = $cron ? date('d/m/Y H:i', strtotime($cron['t'])) . ': ' . implode('; ', $cron['resultado']) : 'nunca (falta la tarea programada)';
 $ev = store()->leer('eventos', []);
 $filas['Webhooks recibidos'] = $ev ? count($ev) . ', el último el ' . date('d/m/Y H:i', strtotime(end($ev)['t'])) . ' (' . end($ev)['tipo'] . ')' : 'ninguno todavía';
+$rech = store()->leer('webhook_rechazos', []);
+$filas['Webhooks rechazados'] = $rech ? count($rech) . '; último ' . date('d/m H:i', strtotime(end($rech)['t'])) . ': ' . end($rech)['motivo']
+    . ' (evento ' . (end($rech)['evento'] ?: '—') . ', ' . (end($rech)['agente'] ?: 'sin agente') . ')' : 'ninguno';
+if ($ev) {
+    $filas['Webhooks recibidos'] .= ', firma: ' . (end($ev)['firma'] ?? '—');
+}
 $filas['Firma de los webhooks'] = $av->secretoFirma() !== '' ? 'se comprueba (secreto guardado)' : 'sin secreto: falta pegarlo abajo';
 $filas['Móviles con avisos'] = (string) count($av->config()['subs']);
 $foto = store()->leer('foto');
@@ -70,7 +76,7 @@ echo barra('');
     <h2 class="sub2">Webhook de Holded</h2>
     <p class="nota">URL (es secreta, no la compartas):</p>
     <p><code><?= e($av->urlWebhook()) ?></code></p>
-    <p class="nota">En Holded, en la sección de webhooks (Nuevo webhook), marca todas las acciones de estas tres áreas: <b>Compra</b> (Compras), <b>Factura</b> y <b>Pago</b>.</p>
+    <p class="nota">En Holded, en la sección de webhooks (Nuevo webhook), marca todas las acciones de estas tres áreas: <b>Gasto</b>, <b>Factura</b> y <b>Pago</b>.</p>
     <p class="nota">Al crearlo, Holded enseña una sola vez el secreto de firma (empieza por whsec_). Pégalo aquí:</p>
     <form method="post" action="/diag.php" class="form"><input type="hidden" name="csrf" value="<?= e(Auth::csrf()) ?>">
       <input name="firma" autocomplete="off" placeholder="whsec_…" aria-label="Secreto de firma de Holded">

@@ -168,17 +168,54 @@ final class Avisos
     }
 
     /**
-     * Comprueba la firma de Holded: HMAC-SHA256 de "<x-holded-webhook-date>.<cuerpo>" con el secreto whsec_,
-     * en hexadecimal, en la cabecera x-holded-webhook-signature ("sha256=…").
+     * Comprueba la firma de Holded (cabecera x-holded-webhook-signature, "sha256=…").
+     * Según Holded: HMAC-SHA256 en hexadecimal de "<x-holded-webhook-date>.<cuerpo>" con el secreto whsec_.
+     * Como la guía no aclara si la clave es el secreto entero o lo que va tras "whsec_" (y si va en base64),
+     * se prueban esas variantes; todas exigen conocer el secreto. Devuelve la variante que coincide o null.
      */
-    public function firmaValida(string $cuerpo, string $fecha, string $firma): bool
+    public function comprobarFirma(string $cuerpo, string $fecha, string $id, string $firma): ?string
     {
         $secreto = $this->secretoFirma();
         if ($secreto === '') {
-            return true; // aún sin secreto guardado: basta la clave de la URL
+            return 'sin-secreto'; // aún sin secreto guardado: basta la clave de la URL
         }
-        $esperada = hash_hmac('sha256', $fecha . '.' . $cuerpo, $secreto);
-        return $fecha !== '' && hash_equals($esperada, preg_replace('/^sha256=/', '', $firma));
+        $recibidas = [];
+        foreach (preg_split('/[\s,]+/', $firma) ?: [] as $f) {
+            $f = preg_replace('/^(sha256=|v1=|v1,)/', '', trim($f));
+            if ($f !== '' && $f !== 'v1') {
+                $recibidas[] = $f;
+            }
+        }
+        $sin = (string) preg_replace('/^whsec_/', '', $secreto);
+        $claves = ['entero' => $secreto, 'sin-prefijo' => $sin];
+        $b = base64_decode($sin, true);
+        if ($b !== false && $b !== '') {
+            $claves['base64'] = $b;
+        }
+        $mensajes = ['fecha.cuerpo' => $fecha . '.' . $cuerpo, 'id.fecha.cuerpo' => $id . '.' . $fecha . '.' . $cuerpo, 'cuerpo' => $cuerpo];
+        foreach ($claves as $nk => $k) {
+            foreach ($mensajes as $nm => $m) {
+                $raw = hash_hmac('sha256', $m, $k, true);
+                foreach (['hex' => bin2hex($raw), 'b64' => base64_encode($raw)] as $nf => $esperada) {
+                    foreach ($recibidas as $r) {
+                        if (hash_equals($esperada, $r)) {
+                            return "$nk/$nm/$nf";
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Apunta un envío rechazado (para verlo en /diag.php). */
+    public function anotarRechazo(string $motivo, array $info): void
+    {
+        $this->s->actualizar('webhook_rechazos', function ($l) use ($motivo, $info) {
+            $l = is_array($l) ? $l : [];
+            $l[] = ['t' => date('c'), 'motivo' => $motivo] + $info;
+            return array_slice($l, -20);
+        }, []);
     }
 
     /**
@@ -186,7 +223,7 @@ final class Avisos
      * cuerpo con type, contactName, documentNumber, total…) y, si es una compra de un proveedor con
      * caja y saldo, avisa. $id = x-holded-webhook-id (los reintentos repiten el id: no se duplica).
      */
-    public function eventoHolded(array $in, string $evento, string $id, ?array $datosPanel): ?array
+    public function eventoHolded(array $in, string $evento, string $id, ?array $datosPanel, string $firma = ''): ?array
     {
         $tipo = $evento !== '' ? $evento : (string) ($in['event'] ?? '');
         $ev = [
@@ -197,6 +234,7 @@ final class Avisos
             'num' => mb_substr((string) ($in['documentNumber'] ?? ''), 0, 40),
             'total' => is_numeric($in['total'] ?? null) ? (float) $in['total'] : null,
             'borrador' => !empty($in['isDraft']),
+            'firma' => $firma,
         ];
         $nuevo = true;
         $this->s->actualizar('eventos', function ($l) use ($ev, &$nuevo) {
