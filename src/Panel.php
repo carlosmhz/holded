@@ -208,7 +208,7 @@ final class Panel
             return $this->resumen($this->h->cuentas(($anio - 1) . '-12-31', $anio . '-01-31', (string) self::PAGOS_130))['p130'];
         });
         // Última cuota de autónomos (caché 30 días)
-        $cuota = $this->s->cache('cuotaAut', 30 * 86400, function () use ($hoy) {
+        $cuota = $this->s->cache('cuotaAutonomos', 30 * 86400, function () use ($hoy) {
             $ult = null;
             foreach ($this->h->lineas(['start_date' => self::sumarDias($hoy, -62), 'end_date' => self::sumarDias($hoy, 1), 'account' => self::AUTONOMOS]) as $i) {
                 $f = self::iso($i['date'] ?? '');
@@ -220,7 +220,8 @@ final class Panel
         });
 
         $foto = ['t' => time(), 'hoy' => $hoy, 'anio' => $anio, 'tri' => $tri, 'finTri' => $finTri, 'limS' => $limS,
-            'a' => $a, 'b' => $b, 'fut' => $fut, 'arr' => $arr, 'p' => $p, 'enero' => (float) $enero, 'cuota' => (float) $cuota, 'ajustes' => 0];
+            'a' => $a, 'b' => $b, 'fut' => $fut, 'arr' => $arr, 'p' => $p, 'enero' => (float) $enero,
+            'cuota' => (float) (is_array($cuota) ? ($cuota['imp'] ?? 0) : $cuota), 'ajustes' => 0];
         $this->s->escribir('foto', $foto);
         return $foto;
     }
