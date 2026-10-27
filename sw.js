@@ -2,7 +2,7 @@
 /* Service worker de MPI Holded.
  * Solo guarda los archivos estáticos (estilos, scripts, fuente, iconos) y una página sin conexión.
  * Las páginas PHP y la API van SIEMPRE a la red: llevan datos y el token de sesión. */
-const VERSION = 'mpi-holded-7';
+const VERSION = 'mpi-holded-8';
 const ESTATICOS = [
   '/offline.html',
   '/assets/app.css?v=6', '/assets/app.js?v=6', '/assets/panel.js?v=6', '/assets/waylet.js?v=6', '/assets/tareas.js?v=6',
@@ -42,7 +42,7 @@ self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { titulo: 'MPI Holded', cuerpo: e.data ? e.data.text() : '' }; }
   e.waitUntil(self.registration.showNotification(d.titulo || 'MPI Holded', {
-    body: d.cuerpo || '', icon: '/assets/icon-192.png?v=4', badge: '/assets/favicon.png?v=4',
+    body: d.cuerpo || '', icon: '/assets/icon-192.png?v=4', badge: '/assets/badge-96.png?v=1',
     tag: d.tag || undefined, data: { url: d.url || '/panel.php' },
   }));
 });

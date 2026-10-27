@@ -170,8 +170,8 @@ final class Avisos
     /**
      * Comprueba la firma de Holded (cabecera x-holded-webhook-signature, "sha256=…").
      * Según Holded: HMAC-SHA256 en hexadecimal de "<x-holded-webhook-date>.<cuerpo>" con el secreto whsec_.
-     * Como la guía no aclara si la clave es el secreto entero o lo que va tras "whsec_" (y si va en base64),
-     * se prueban esas variantes; todas exigen conocer el secreto. Devuelve la variante que coincide o null.
+     * En la práctica (comprobado el 28/10/2026) Holded firma SOLO el cuerpo, con el secreto entero, en hexadecimal.
+     * Se acepta también la forma de la guía (fecha.cuerpo) por si la cambian. Devuelve la variante que coincide o null.
      */
     public function comprobarFirma(string $cuerpo, string $fecha, string $id, string $firma): ?string
     {
@@ -186,22 +186,11 @@ final class Avisos
                 $recibidas[] = $f;
             }
         }
-        $sin = (string) preg_replace('/^whsec_/', '', $secreto);
-        $claves = ['entero' => $secreto, 'sin-prefijo' => $sin];
-        $b = base64_decode($sin, true);
-        if ($b !== false && $b !== '') {
-            $claves['base64'] = $b;
-        }
-        $mensajes = ['fecha.cuerpo' => $fecha . '.' . $cuerpo, 'id.fecha.cuerpo' => $id . '.' . $fecha . '.' . $cuerpo, 'cuerpo' => $cuerpo];
-        foreach ($claves as $nk => $k) {
-            foreach ($mensajes as $nm => $m) {
-                $raw = hash_hmac('sha256', $m, $k, true);
-                foreach (['hex' => bin2hex($raw), 'b64' => base64_encode($raw)] as $nf => $esperada) {
-                    foreach ($recibidas as $r) {
-                        if (hash_equals($esperada, $r)) {
-                            return "$nk/$nm/$nf";
-                        }
-                    }
+        foreach (['cuerpo' => $cuerpo, 'fecha.cuerpo' => $fecha . '.' . $cuerpo] as $nm => $m) {
+            $esperada = hash_hmac('sha256', $m, $secreto);
+            foreach ($recibidas as $r) {
+                if (hash_equals($esperada, $r)) {
+                    return "entero/$nm/hex";
                 }
             }
         }
