@@ -9,25 +9,18 @@
   var hoy = new Date();
   f.value = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
-  function api(metodo, cuerpo) { return M.api('/api/waylet.php' + (metodo === 'GET' ? '?mov=1' : ''), metodo, cuerpo, '/waylet.php'); }
-  function msg(cl, t) { m.className = 'resultado-op ' + cl; m.textContent = t; }
-
-  function pintaMovs(l) {
-    var ul = $('movs');
-    if (l === null || l === undefined) { ul.innerHTML = '<li><span class="vacio">No se pudieron leer los movimientos.</span></li>'; return; }
-    if (!l.length) { ul.innerHTML = '<li><span class="vacio">Aún no hay movimientos este año.</span></li>'; $('ultimo').hidden = true; return; }
-    ul.innerHTML = l.map(function (x) {
-      return '<li><span>' + esc(x.concepto || 'Movimiento') + '<small>' + M.fechaLarga(x.fecha) + (x.n ? ', asiento ' + x.n : '') + '</small></span><b class="' + (x.importe < 0 ? 'neg' : 'pos') + '">' + eur(x.importe, true) + '</b></li>';
-    }).join('');
-    var u = l[0];
-    $('ult-txt').textContent = 'Último movimiento, ' + M.fechaLarga(u.fecha);
-    $('ult-v').textContent = eur(u.importe, true);
-    $('ultimo').hidden = false;
+  function api(url, metodo, cuerpo) { return M.api(url, metodo, cuerpo, '/waylet.php'); }
+  function msg(cl, t) { m.className = 'res-op ' + cl; m.textContent = t; }
+  function fechaFoto(iso) {
+    var t = new Date(iso), h = new Date();
+    return (t.toDateString() === h.toDateString() ? 'hoy' : t.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })) + ', ' + t.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   }
 
   function carga() {
-    return api('GET').then(function (d) { $('h').textContent = eur(d.saldo); pintaMovs(d.movimientos); })
-      .catch(function (e) { $('h').textContent = '—'; msg('err', e.message); });
+    return api('/api/waylet.php', 'GET').then(function (d) {
+      $('h').textContent = eur(d.saldo);
+      $('hs').textContent = 'Saldo en Holded según los datos de ' + fechaFoto(d.foto) + '. Debe coincidir con la app de Waylet.';
+    }).catch(function (e) { $('h').textContent = '—'; msg('err', e.message); });
   }
 
   function tab(n) {
@@ -38,17 +31,13 @@
     });
     $('fw').hidden = n === 3;
     b.textContent = BOTON[n];
-    m.className = 'resultado-op';
-    ($('a q s'.split(' ')[n - 1])).focus();
+    m.className = 'res-op';
   }
 
   function tipo(t) {
     K = t;
     $('k1').setAttribute('aria-pressed', t === 'factura' ? 'true' : 'false');
     $('k2').setAttribute('aria-pressed', t === 'gasto' ? 'true' : 'false');
-    $('hk').textContent = t === 'factura'
-      ? 'Cuando llegue la factura, págala desde la caja Pagos Waylet.'
-      : 'Uso personal (cuenta 550): no espera factura.';
     $('cq').placeholder = t === 'factura' ? 'Repsol Ciudad Rodrigo' : 'Lavado';
   }
 
@@ -61,13 +50,28 @@
     var cuerpo = T === 1 ? { accion: 'anadir', importe: v, fecha: f.value }
       : T === 2 ? { accion: 'quitar', importe: v, tipo: K, concepto: $('cq').value, fecha: f.value }
       : { accion: 'ajustar', saldo: v };
-    b.disabled = true; msg('', ''); b.textContent = 'Guardando…';
-    api('POST', cuerpo).then(function (d) {
+    b.disabled = true; b.textContent = 'Guardando…'; m.className = 'res-op';
+    api('/api/waylet.php', 'POST', cuerpo).then(function (d) {
       msg(d.prueba ? 'prueba' : 'ok', d.mensaje);
-      if (!d.prueba) { $('a').value = $('q').value = $('s').value = $('cq').value = ''; }
-      return carga();
+      if (!d.prueba) {
+        $('a').value = $('q').value = $('s').value = $('cq').value = '';
+        if (typeof d.saldo === 'number') { $('h').textContent = eur(d.saldo); }
+      }
     }).catch(function (e) { msg('err', e.message); }).then(function () { b.disabled = false; b.textContent = BOTON[T]; });
   }
+
+  $('vermov').addEventListener('click', function () {
+    var btn = $('vermov'); btn.disabled = true; btn.textContent = 'Cargando…';
+    api('/api/waylet.php?mov=1', 'GET').then(function (d) {
+      var l = d.movimientos;
+      $('movs').innerHTML = !l ? '<p class="vacio">No se pudieron leer los movimientos.</p>'
+        : !l.length ? '<p class="vacio">Aún no hay movimientos este año.</p>'
+        : '<ul class="filas">' + l.map(function (x) {
+          return '<li><span>' + esc(x.concepto || 'Movimiento') + '<small>' + M.fechaLarga(x.fecha) + (x.n ? ', asiento ' + x.n : '') + '</small></span><b class="' + (x.importe < 0 ? 'neg' : 'pos') + '">' + eur(x.importe, true) + '</b></li>';
+        }).join('') + '</ul>';
+      btn.hidden = true;
+    }).catch(function (e) { msg('err', e.message); btn.disabled = false; btn.textContent = 'Ver movimientos'; });
+  });
 
   document.querySelectorAll('[data-tab]').forEach(function (el) { el.addEventListener('click', function () { tab(+el.dataset.tab); }); });
   document.querySelectorAll('[data-tipo]').forEach(function (el) { el.addEventListener('click', function () { tipo(el.dataset.tipo); }); });

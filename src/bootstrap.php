@@ -55,7 +55,7 @@ function store(): Store
 function holded(): Holded
 {
     static $h = null;
-    return $h ??= new Holded(cfg()['holded_api_key'], cfg()['holded_base']);
+    return $h ??= new Holded(cfg()['holded_api_key'], cfg()['holded_base'], store());
 }
 
 function contabilidad(): Contabilidad

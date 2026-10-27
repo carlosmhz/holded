@@ -29,10 +29,10 @@ cabecera('Configuración inicial · MPI Holded');
 ?>
 <main class="acceso">
   <div class="caja-login">
-    <img class="logo" src="/assets/logo-tarjeta.png?v=4" alt="" width="120" height="78">
+    <img class="logo" src="/assets/icon-192.png?v=4" alt="" width="48" height="48">
     <h1>Configuración inicial</h1>
     <p class="sub">No se guarda nada aquí: copia los valores en config.php, fuera de public_html.</p>
-    <div class="form">
+    <div class="sec form">
     <?php if ($hash): ?>
       <label>password_hash</label><p><code><?= e($hash) ?></code></p>
       <label>asientos_token (para la cabecera X-Token)</label><p><code><?= e(bin2hex(random_bytes(32))) ?></code></p>
@@ -42,7 +42,7 @@ cabecera('Configuración inicial · MPI Holded');
         <input type="hidden" name="csrf" value="<?= e(Auth::csrf()) ?>">
         <label for="p1">Contraseña (mínimo 12 caracteres)</label><input id="p1" name="p1" type="password" autocomplete="new-password" required>
         <label for="p2">Repite la contraseña</label><input id="p2" name="p2" type="password" autocomplete="new-password" required>
-        <button class="guardar" type="submit">Generar hash</button>
+        <button class="boton" type="submit">Generar hash</button>
         <?php if ($error): ?><p class="error" role="alert"><?= e($error) ?></p><?php endif; ?>
       </form>
     <?php endif; ?>

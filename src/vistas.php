@@ -2,17 +2,17 @@
 declare(strict_types=1);
 defined('APP_ROOT') || exit;
 
-const VERSION_ESTATICOS = '4';
+const VERSION_ESTATICOS = '5';
 
-function cabecera(string $titulo, array $js = [], string $claseBody = ''): void
+function cabecera(string $titulo, array $js = []): void
 {
     $csrf = Auth::logueado() ? Auth::csrf() : '';
     $v = VERSION_ESTATICOS;
     header('Content-Type: text/html; charset=utf-8');
     echo '<!doctype html><html lang="es"><head><meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
-        '<meta name="theme-color" content="#2B43B1" media="(prefers-color-scheme: light)">',
-        '<meta name="theme-color" content="#0A1130" media="(prefers-color-scheme: dark)">',
+        '<meta name="theme-color" content="#F2F4F9">',
+        '<meta name="color-scheme" content="light">',
         '<meta name="robots" content="noindex, nofollow">',
         '<meta name="apple-mobile-web-app-capable" content="yes">',
         '<meta name="apple-mobile-web-app-title" content="MPI Holded">',
@@ -27,7 +27,7 @@ function cabecera(string $titulo, array $js = [], string $claseBody = ''): void
     foreach ($js as $f) {
         echo '<script src="/assets/', e($f), '?v=', $v, '" defer></script>';
     }
-    echo '</head><body', $claseBody !== '' ? ' class="' . e($claseBody) . '"' : '', '>';
+    echo '</head><body>';
 }
 
 function pie(): void
@@ -42,11 +42,11 @@ function botonSalir(): string
         . e(Auth::csrf()) . '"><button type="submit">Salir</button></form>';
 }
 
-/** Barra superior con la marca y la navegación entre Panel y Waylet. */
+/** Barra superior: icono pequeño, nombre y navegación entre Panel y Waylet. */
 function barra(string $actual): string
 {
     $enlace = fn(string $url, string $txt) => '<a href="' . $url . '"' . ($actual === $url ? ' aria-current="page"' : '') . '>' . $txt . '</a>';
-    return '<header class="barra"><a class="marca" href="/panel.php"><img src="/assets/logo-tarjeta.png?v=4" alt="" width="38" height="25"><span>MPI Holded</span></a>'
+    return '<header class="barra"><a class="marca" href="/panel.php"><img src="/assets/icon-192.png?v=4" alt="" width="24" height="24"><span>MPI Holded</span></a>'
         . '<nav class="nav" aria-label="Secciones">' . $enlace('/panel.php', 'Panel') . $enlace('/waylet.php', 'Waylet') . '</nav>'
         . botonSalir() . '</header>';
 }

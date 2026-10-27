@@ -15,11 +15,21 @@ final class Waylet
     public const CUENTA = 40700001, BONIF = 62900012, PENDIENTE = 57000004, TITULAR = 55000000;
     private const MAX_IMPORTE = 1000.0; // tope de seguridad contra errores de tecleo
 
-    public function __construct(private Contabilidad $c, private Holded $h, private bool $escribir) {}
+    public function __construct(private Contabilidad $c, private Holded $h, private bool $escribir, private Panel $p) {}
 
+    /** Saldo según la foto del panel (no llama a Holded salvo que no exista foto). */
     public function saldo(): float
     {
-        return $this->c->saldoCaja(self::CUENTA);
+        return Panel::saldoCaja($this->p->fotoOCrear(), self::CUENTA);
+    }
+
+    /** Saldo leído ahora mismo de Holded (1 llamada; el arrastre sale de la caché). Actualiza la foto. */
+    private function saldoReal(): float
+    {
+        $anio = $this->c->saldoAnioActual(self::CUENTA);
+        $this->p->fotoOCrear();
+        $this->p->fijarCaja(self::CUENTA, $anio);
+        return r2($anio + $this->c->arrastre(self::CUENTA));
     }
 
     /** Últimos movimientos del monedero en el año en curso (solo lectura). */
@@ -74,6 +84,7 @@ final class Waylet
                 'mensaje' => "MODO PRUEBA (no se ha creado nada) · $texto · saldo quedaría en " . eur($saldo)];
         }
         $r = $this->h->asientoSimple($fecha, $debe, $haber, $imp, $desc);
+        $this->p->ajustarFoto($fecha, [[$debe, $imp, 0.0], [$haber, 0.0, $imp]]);
         $saldo = $this->saldo();
         error_log('[holded] asiento Waylet ' . json_encode($a, JSON_UNESCAPED_UNICODE) . ' → ' . json_encode($r));
         return ['prueba' => false, 'asiento' => $a, 'id' => $r['id'] ?? null, 'saldo' => $saldo,
@@ -109,7 +120,7 @@ final class Waylet
         if (!is_numeric(str_replace(',', '.', (string) $saldoApp)) || $real < 0) {
             throw new ErrorUsuario('Saldo no válido');
         }
-        $holded = $this->saldo();
+        $holded = $this->saldoReal(); // al ajustar se compara con Holded de verdad, no con la foto
         $dif = r2($real - $holded);
         if (abs($dif) < 0.005) {
             return ['prueba' => !$this->escribir, 'saldo' => $holded, 'mensaje' => 'Sin cambios: Holded ya tiene ' . eur($holded)];

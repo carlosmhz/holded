@@ -10,7 +10,30 @@ final class ErrorHolded extends RuntimeException {}
  */
 final class Holded
 {
-    public function __construct(private string $clave, private string $base) {}
+    public function __construct(private string $clave, private string $base, private ?Store $store = null) {}
+
+    /** Cuenta las llamadas que hace esta web en el mes (la API de Holded tiene límite mensual). */
+    private function contar(int $n): void
+    {
+        if ($this->store === null || $n <= 0) {
+            return;
+        }
+        $mes = date('Y-m');
+        try {
+            $this->store->actualizar('uso_api', function ($u) use ($mes, $n) {
+                $u = is_array($u) && ($u['mes'] ?? '') === $mes ? $u : ['mes' => $mes, 'n' => 0];
+                $u['n'] += $n;
+                return $u;
+            }, []);
+        } catch (Throwable) {
+        }
+    }
+
+    public static function usoMes(Store $s): int
+    {
+        $u = $s->leer('uso_api', []);
+        return is_array($u) && ($u['mes'] ?? '') === date('Y-m') ? (int) $u['n'] : 0;
+    }
 
     public function peticion(string $metodo, string $ruta, array $query = [], ?array $cuerpo = null): array
     {
@@ -18,6 +41,7 @@ final class Holded
             throw new ErrorHolded('Falta holded_api_key en el config');
         }
         $url = rtrim($this->base, '/') . $ruta . ($query ? '?' . http_build_query($query) : '');
+        $this->contar(1);
         $ch = curl_init($url);
         $cab = ['Authorization: Bearer ' . $this->clave, 'Accept: application/json'];
         if ($cuerpo !== null) {
@@ -57,6 +81,7 @@ final class Holded
         if ($this->clave === '') {
             throw new ErrorHolded('Falta holded_api_key en el config');
         }
+        $this->contar(count($peticiones));
         $mh = curl_multi_init();
         $hs = [];
         foreach ($peticiones as $k => [$ruta, $q]) {

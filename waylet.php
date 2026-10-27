@@ -8,54 +8,50 @@ cabecera('Waylet · MPI Holded', ['waylet.js']);
 echo barra('/waylet.php');
 ?>
 <main class="pagina estrecha">
-  <section class="tarjeta" aria-labelledby="t-mon">
-    <p class="etq" id="t-mon">Monedero Waylet</p>
-    <p class="cifra" id="h">—</p>
-    <p class="nota">Saldo en Holded. Debe coincidir con la app de Repsol Waylet.</p>
-    <div class="flecha" id="ultimo" hidden><span id="ult-txt"></span><b id="ult-v"></b></div>
+  <section class="saldo" aria-labelledby="t-mon">
+    <div class="n" id="t-mon">Monedero Waylet</div>
+    <div class="v" id="h">—</div>
+    <div class="s" id="hs">Saldo en Holded; debe coincidir con la app de Waylet.</div>
   </section>
   <?php if ($prueba): ?><p class="aviso">Modo prueba: no se crea nada en Holded (escritura_holded está en false).</p><?php endif; ?>
 
-  <div class="segmentos" role="tablist" aria-label="Operación">
+  <div class="seg" role="tablist" aria-label="Operación">
     <button type="button" role="tab" id="t1" aria-selected="true" aria-controls="p1" data-tab="1">Añadir</button>
     <button type="button" role="tab" id="t2" aria-selected="false" aria-controls="p2" data-tab="2">Quitar</button>
     <button type="button" role="tab" id="t3" aria-selected="false" aria-controls="p3" data-tab="3">Ajustar</button>
   </div>
 
-  <div class="form">
+  <section class="sec form">
     <div id="p1" class="p on" role="tabpanel" aria-labelledby="t1">
       <label for="a">Bonificación o cupón que entra</label>
       <input id="a" class="importe" inputmode="decimal" placeholder="0,00" autocomplete="off">
-      <p class="ayuda">Se apunta como bonificación (629) y sube el saldo del monedero.</p>
+      <p class="ayuda">Se apunta como bonificación (629).</p>
     </div>
-
     <div id="p2" class="p" role="tabpanel" aria-labelledby="t2">
       <label for="q">Importe pagado con el saldo</label>
       <input id="q" class="importe" inputmode="decimal" placeholder="0,00" autocomplete="off">
-      <label>¿Tiene factura?</label>
+      <span class="campo">¿Tiene factura?</span>
       <div class="tipo">
-        <button type="button" id="k1" aria-pressed="true" data-tipo="factura">Con factura<small>Repostaje: va a Pagos Waylet</small></button>
-        <button type="button" id="k2" aria-pressed="false" data-tipo="gasto">Sin factura<small>Lavados y similares: va a la 550</small></button>
+        <button type="button" id="k1" aria-pressed="true" data-tipo="factura">Con factura<small>Va a Pagos Waylet</small></button>
+        <button type="button" id="k2" aria-pressed="false" data-tipo="gasto">Sin factura<small>Lavados: va a la 550</small></button>
       </div>
-      <p class="ayuda" id="hk">Cuando llegue la factura, págala desde la caja Pagos Waylet.</p>
       <label for="cq">Concepto (opcional)</label>
       <input id="cq" maxlength="100" placeholder="Repsol Ciudad Rodrigo" autocomplete="off">
     </div>
-
     <div id="p3" class="p" role="tabpanel" aria-labelledby="t3">
       <label for="s">Saldo que marca ahora la app</label>
       <input id="s" class="importe" inputmode="decimal" placeholder="0,00" autocomplete="off">
-      <p class="ayuda">Se apunta la diferencia con Holded como bonificación (629), con fecha de hoy.</p>
+      <p class="ayuda">Consulta el saldo actual en Holded y apunta la diferencia como bonificación (629), con fecha de hoy.</p>
     </div>
-
     <div id="fw"><label for="f">Fecha</label><input id="f" type="date"></div>
-    <button class="guardar" id="b" type="button">Añadir al monedero</button>
-    <div id="m" class="resultado-op" aria-live="polite"></div>
-  </div>
+    <button class="boton" id="b" type="button">Añadir al monedero</button>
+    <div id="m" class="res-op" aria-live="polite"></div>
+  </section>
 
-  <section class="movs hoja" aria-labelledby="t-movs">
-    <h2 id="t-movs">Movimientos de este año</h2>
-    <ul class="filas" id="movs"><li><span class="vacio">Cargando…</span></li></ul>
+  <section class="sec" aria-labelledby="t-movs">
+    <h2 id="t-movs">Movimientos del monedero</h2>
+    <div id="movs"><p class="nota">No se cargan solos para no gastar llamadas a Holded.</p></div>
+    <button type="button" class="mas" id="vermov">Ver movimientos</button>
   </section>
 </main>
 <?php pie();

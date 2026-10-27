@@ -8,9 +8,9 @@ defined('APP_ROOT') || exit;
  * Arrastre de años cerrados: no hay asiento de apertura (no se cierra el ejercicio), así que el
  * saldo de una caja = saldo del año en curso (consulta sin fechas) + suma de su saldo en cada
  * año cerrado desde ANIO_INICIO. Cada año cerrado es UNA consulta (todas las cuentas) en caché:
- *   - año anterior: 24 h (en enero-febrero aún pueden entrar asientos con fecha de diciembre)
+ *   - año anterior: 7 días (en enero-febrero aún pueden entrar asientos con fecha de diciembre)
  *   - años más antiguos: 1 año
- * El botón de refrescar borra la caché.
+ * El botón "Actualizar" del panel no la borra: solo renueva la foto.
  */
 final class Contabilidad
 {
@@ -26,7 +26,7 @@ final class Contabilidad
     /** Saldos de todas las cuentas en un año cerrado: [número => ['b' => saldo, 'n' => nombre]]. */
     public function saldosAnio(int $anio): array
     {
-        $ttl = $anio >= self::anioActual() - 1 ? 86400 : 365 * 86400;
+        $ttl = $anio >= self::anioActual() - 1 ? 7 * 86400 : 365 * 86400;
         return $this->s->cache('anio' . $anio, $ttl, function () use ($anio) {
             $out = [];
             foreach ($this->h->cuentas(($anio - 1) . '-12-31', $anio . '-12-31') as $c) {

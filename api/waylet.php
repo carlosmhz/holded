@@ -1,19 +1,20 @@
 <?php
 /**
  * API de la página de Waylet (solo con sesión).
- *   GET  → {saldo}
+ *   GET  → {saldo, foto} (de la foto del panel, sin llamar a Holded); ?mov=1 añade movimientos (1 llamada)
  *   POST → {accion: anadir|quitar|ajustar, …} con cabecera X-CSRF-Token
  */
 declare(strict_types=1);
 require dirname(__DIR__) . '/src/bootstrap.php';
 
 Auth::exigirApi();
-$w = new Waylet(contabilidad(), holded(), cfg()['escritura_holded']);
+$panel = new Panel(holded(), contabilidad(), store());
+$w = new Waylet(contabilidad(), holded(), cfg()['escritura_holded'], $panel);
 
 try {
     $metodo = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     if ($metodo === 'GET') {
-        $r = ['saldo' => $w->saldo(), 'prueba' => !cfg()['escritura_holded']];
+        $r = ['saldo' => $w->saldo(), 'prueba' => !cfg()['escritura_holded'], 'foto' => date('c', $panel->fotoOCrear()['t'])];
         if (isset($_GET['mov'])) {
             try {
                 $r['movimientos'] = $w->movimientos();

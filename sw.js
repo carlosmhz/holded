@@ -2,11 +2,11 @@
 /* Service worker de MPI Holded.
  * Solo guarda los archivos estáticos (estilos, scripts, fuente, iconos) y una página sin conexión.
  * Las páginas PHP y la API van SIEMPRE a la red: llevan datos y el token de sesión. */
-const VERSION = 'mpi-holded-5';
+const VERSION = 'mpi-holded-6';
 const ESTATICOS = [
   '/offline.html',
-  '/assets/app.css?v=4', '/assets/app.js?v=4', '/assets/panel.js?v=4', '/assets/waylet.js?v=4',
-  '/assets/fonts/archivo.woff2', '/assets/logo-tarjeta.png?v=4', '/assets/favicon.png?v=4', '/assets/icon-192.png?v=4',
+  '/assets/app.css?v=5', '/assets/app.js?v=5', '/assets/panel.js?v=5', '/assets/waylet.js?v=5',
+  '/assets/fonts/archivo.woff2', '/assets/favicon.png?v=4', '/assets/icon-192.png?v=4',
 ];
 
 self.addEventListener('install', (e) => {
