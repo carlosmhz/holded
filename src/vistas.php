@@ -15,9 +15,9 @@ function cabecera(string $titulo, array $js = []): void
         '<link rel="manifest" href="/manifest.webmanifest">',
         '<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">',
         '<link rel="apple-touch-icon" href="/assets/icon-180.png">',
-        '<link rel="stylesheet" href="/assets/app.css?v=1">';
+        '<link rel="stylesheet" href="/assets/app.css?v=2">';
     foreach ($js as $f) {
-        echo '<script src="/assets/', e($f), '?v=1" defer></script>';
+        echo '<script src="/assets/', e($f), '?v=2" defer></script>';
     }
     echo '</head><body>';
 }

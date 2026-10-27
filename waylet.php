@@ -7,7 +7,7 @@ $prueba = !cfg()['escritura_holded'];
 cabecera('Saldo Waylet', ['waylet.js']);
 ?>
 <div class="c">
-  <div class="top"><h1>Saldo Waylet</h1><?= botonSalir() ?></div>
+  <div class="top"><h1>Saldo Waylet</h1><span class="acc"><a href="/panel.php">📊 Panel</a> <?= botonSalir() ?></span></div>
   <p class="sub">Holded: <b id="h">…</b></p>
   <?php if ($prueba): ?><p class="av">MODO PRUEBA: no se crea nada en Holded (escritura_holded = false en el config).</p><?php endif; ?>
 

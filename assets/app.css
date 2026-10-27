@@ -16,6 +16,17 @@ button{border:0;border-radius:10px;font-weight:600;cursor:pointer;font-family:in
 #m{margin-top:14px;font-size:15px;min-height:20px}.e{color:#c0392b}.k{color:#1e8449}.w{color:#8a4b00}
 .av{background:#fff4e5;color:#8a4b00;border-radius:10px;padding:8px 10px;font-size:13px;margin:0 0 12px}
 .salir{margin:0}.salir button{background:none;color:#8a91a0;font-size:13px;padding:6px 0;font-weight:500}
+/* Panel (portado de HTML_PANEL_) */
+.panel{max-width:560px;margin:auto}.panel .top{margin-bottom:2px}.panel .sub{font-size:13px;margin:0 0 12px}
+.panel .c{max-width:none;padding:14px 16px;margin-bottom:12px}
+.panel h2{font-size:15px;margin:0 0 8px;color:#5b6475;font-weight:600}
+.r{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #f0f1f4;font-size:15px}.r:last-child{border:0}
+.r b{white-space:nowrap}.t{font-weight:700}.neg{color:#c0392b}.pos{color:#1e8449}.mut{color:#8a91a0;font-size:12px}
+.big{font-size:26px;font-weight:700}.panel .av{margin:8px 0 0}
+a{color:#ff7b00;text-decoration:none}.acc{display:flex;align-items:center;gap:10px;font-size:14px}
+#ref{background:#ff7b00;color:#fff;padding:6px 11px;font-size:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid .c{margin:0}.sep{height:12px}.pie{text-align:center;margin:4px 0 0}
+@media(max-width:480px){.grid{grid-template-columns:1fr}}
 table.diag{width:100%;border-collapse:collapse;font-size:14px}table.diag td{padding:6px 4px;border-bottom:1px solid #f0f1f4;vertical-align:top}
 table.diag td:first-child{color:#5b6475;white-space:nowrap}
 code{font-size:12px;word-break:break-all;background:#f4f5f7;padding:2px 4px;border-radius:4px}

@@ -24,6 +24,7 @@ require __DIR__ . '/Auth.php';
 require __DIR__ . '/Holded.php';
 require __DIR__ . '/Contabilidad.php';
 require __DIR__ . '/Waylet.php';
+require __DIR__ . '/Panel.php';
 require __DIR__ . '/vistas.php';
 
 cabecerasSeguridad();
