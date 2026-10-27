@@ -31,6 +31,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
 }
 $filas['Llamadas a Holded este mes'] = Holded::usoMes(store()) . ' desde esta web';
+$av = new Avisos(store());
+$cron = store()->leer('cron');
+$filas['Última revisión de avisos'] = $cron ? date('d/m/Y H:i', strtotime($cron['t'])) . ': ' . implode('; ', $cron['resultado']) : 'nunca (falta la tarea programada)';
+$ev = store()->leer('eventos', []);
+$filas['Webhooks recibidos'] = $ev ? count($ev) . ', el último el ' . date('d/m/Y H:i', strtotime(end($ev)['t'])) . ' (' . end($ev)['tipo'] . ')' : 'ninguno todavía';
+$filas['Móviles con avisos'] = (string) count($av->config()['subs']);
 $foto = store()->leer('foto');
 $filas['Foto del panel'] = is_array($foto) && isset($foto['t']) ? date('d/m/Y H:i', $foto['t']) . ', ' . (int) ($foto['ajustes'] ?? 0) . ' ajustes desde Waylet' : 'aún no hay';
 
@@ -47,6 +53,14 @@ echo barra('');
     <table class="diag">
       <?php foreach ($filas as $k => $v): ?><tr><td><?= e($k) ?></td><td><?= e($v) ?></td></tr><?php endforeach; ?>
     </table>
+    <h2 class="sub2">Tarea programada (avisos diarios)</h2>
+    <p class="nota">En hPanel, Avanzado → Tareas Cron: tipo «Personalizado», todos los días a las 9:00, con este comando:</p>
+    <p><code><?= e('/usr/bin/php ' . APP_ROOT . '/tools/avisos.php') ?></code></p>
+    <p class="nota">Si hPanel pide solo la ruta del archivo PHP, usa: <code><?= e(APP_ROOT . '/tools/avisos.php') ?></code></p>
+    <h2 class="sub2">Webhook de Holded</h2>
+    <p class="nota">URL (es secreta, no la compartas):</p>
+    <p><code><?= e($av->urlWebhook()) ?></code></p>
+    <p class="nota">Eventos: purchase.create, purchase.update, purchase.approve, purchase.delete, invoice.create, invoice.update, invoice.approve, invoice.delete, payment.create, payment.update, payment.delete.</p>
     <form method="post" action="/diag.php"><input type="hidden" name="csrf" value="<?= e(Auth::csrf()) ?>"><button class="secundario" type="submit">Probar conexión con Holded</button></form>
   </section>
 </main>

@@ -7,11 +7,12 @@ defined('APP_ROOT') || exit;
  *
  * La API de Holded tiene un límite mensual, así que:
  *  - Abrir el panel o Waylet NO llama a Holded: se lee la foto (data_dir/foto.json).
- *  - La foto solo se renueva con el botón "Actualizar" (o la primera vez que no existe): 3 llamadas
+ *  - La foto solo se renueva con el botón "Actualizar" (o la primera vez que no existe): 4 llamadas
  *      A) cuentas sin fechas            → cajas y monederos (+ arrastre de años cerrados)
  *      B) cuentas del 1/1 al fin del trimestre → resultado, 130, 303, pendientes, banco y tarjeta
  *      C) libro diario de hoy al fin del trimestre (o al día 11 si es más tarde) → pagos próximos
  *         y lo ya programado con fecha futura (se descuenta para tener banco y tarjeta a hoy)
+ *      D) cuentas bancarias → movimientos sin conciliar
  *  - Datos que cambian poco, en caché aparte: años cerrados (1 llamada por año), IVA de los
  *    trimestres cerrados (1 por trimestre), pago del 130 de enero (1 por año), cuota de autónomos (1 al mes).
  *  - Las operaciones de Waylet ajustan la foto sin volver a consultar.
@@ -155,8 +156,9 @@ final class Panel
         $limS = $dia < 11 ? self::f($anio, $mes - 1, 11) : self::f($anio, $mes, 11);
         $finC = max($finTri, $limS);
 
-        // A, B y C en paralelo
+        // A, B, C y D en paralelo (D = cuentas bancarias: movimientos sin conciliar)
         $r = $this->h->variosGet([
+            'D' => ['/treasury/accounts', []],
             'A' => ['/accounting-accounts', []],
             'B' => ['/accounting-accounts', ['start_date' => ($anio - 1) . '-12-31', 'end_date' => $finTri]],
             'C' => ['/ledger-entries', ['start_date' => $hoy, 'end_date' => self::sumarDias($finC, 1), 'limit' => 200]],
@@ -219,7 +221,31 @@ final class Panel
             return $ult['imp'] ?? 0.0;
         });
 
-        $foto = ['t' => time(), 'hoy' => $hoy, 'anio' => $anio, 'tri' => $tri, 'finTri' => $finTri, 'limS' => $limS,
+        // Banco: movimientos sin conciliar (Holded da el número en la cuenta bancaria)
+        $anterior = $this->foto();
+        $bancos = array_is_list($r['D']) ? $r['D'] : ($r['D']['items'] ?? []);
+        $pend = null;
+        $sync = null;
+        foreach ($bancos as $x) {
+            if ((int) ($x['accounting_account_number'] ?? 0) === self::BANCO) {
+                $pend = (int) ($x['transactions_pending_to_reconcile'] ?? 0);
+                $sync = $x['synced_at'] ?? null;
+            }
+        }
+        $pendDesde = null;
+        if ($pend > 0) {
+            $pendDesde = ($anterior['bancoPend'] ?? 0) > 0 && !empty($anterior['bancoPendDesde']) ? $anterior['bancoPendDesde'] : $hoy;
+        }
+        // Desde cuándo tiene saldo cada caja que espera factura (para el aviso de 40 días)
+        $desde = [];
+        foreach (self::CAJAS as $cta => [, $tipo]) {
+            $saldo = ($a[(string) $cta] ?? 0.0) + ($arr[(string) $cta] ?? 0.0);
+            if ($tipo === 'factura' && $saldo > 0.004) {
+                $desde[(string) $cta] = $anterior['desde'][(string) $cta] ?? $hoy;
+            }
+        }
+
+        $foto = ['t' => time(), 'bancoPend' => $pend, 'bancoSync' => $sync, 'bancoPendDesde' => $pendDesde, 'desde' => $desde, 'hoy' => $hoy, 'anio' => $anio, 'tri' => $tri, 'finTri' => $finTri, 'limS' => $limS,
             'a' => $a, 'b' => $b, 'fut' => $fut, 'arr' => $arr, 'p' => $p, 'enero' => (float) $enero,
             'cuota' => (float) (is_array($cuota) ? ($cuota['imp'] ?? 0) : $cuota), 'ajustes' => 0];
         $this->s->escribir('foto', $foto);
@@ -287,10 +313,31 @@ final class Panel
             'plazo' => self::f($anio, $tri * 3, $tri === 4 ? 30 : 20), 'domicilia' => self::finDomiciliacion($anio, $tri),
             'limite' => $limS, 'uso' => Holded::usoMes($this->s)];
 
-        // Cajas
+        // Banco y cambios en Holded desde la foto (webhooks; sin llamadas)
+        $out['bancoPend'] = $f['bancoPend'] ?? null;
+        $out['bancoSync'] = $f['bancoSync'] ?? null;
+        $out['bancoPendDesde'] = $f['bancoPendDesde'] ?? null;
+        $avisos = new Avisos($this->s);
+        $cambios = $avisos->eventosDesde(date('c', $f['t']));
+        $out['cambios'] = array_map(fn($e) => ['tipo' => $e['tipo'], 'contacto' => $e['contacto'], 'total' => $e['total']], array_slice($cambios, -20));
+        $out['webhookActivo'] = $this->s->leer('eventos') !== null;
+
+        // Cajas (con "factura recibida" si ha llegado una compra de su proveedor desde que tiene saldo)
+        $recientes = $avisos->eventosDesde(date('c', time() - 60 * 86400));
         $out['cajas'] = [];
         foreach (self::CAJAS as $cta => [$nombre, $tipo]) {
-            $out['cajas'][] = ['num' => $cta, 'nombre' => $nombre, 'tipo' => $tipo, 'saldo' => self::saldoCaja($f, $cta)];
+            $saldo = self::saldoCaja($f, $cta);
+            $desde = $f['desde'][(string) $cta] ?? null;
+            $recibida = false;
+            if ($saldo > 0.004) {
+                foreach ($recientes as $e) {
+                    if (str_starts_with($e['tipo'], 'purchase.') && !str_ends_with($e['tipo'], '.delete')
+                        && Avisos::cajaDeContacto($e['contacto']) === $cta && ($desde === null || substr($e['t'], 0, 10) >= $desde)) {
+                        $recibida = true;
+                    }
+                }
+            }
+            $out['cajas'][] = ['num' => $cta, 'nombre' => $nombre, 'tipo' => $tipo, 'saldo' => $saldo, 'desde' => $desde, 'facturaRecibida' => $recibida];
         }
 
         // Banco y tarjeta a hoy: hasta fin de trimestre − lo programado con fecha futura (hasta fin de trimestre)

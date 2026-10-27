@@ -2,7 +2,7 @@
 /**
  * API del panel (solo lectura en Holded, con sesión).
  *   GET  → datos del panel a partir de la foto guardada (0 llamadas; solo la primera vez crea la foto)
- *   POST {accion: "actualizar"} con X-CSRF-Token → renueva la foto (3 llamadas a Holded)
+ *   POST {accion: "actualizar"} con X-CSRF-Token → renueva la foto (4 llamadas a Holded)
  */
 declare(strict_types=1);
 require dirname(__DIR__) . '/src/bootstrap.php';

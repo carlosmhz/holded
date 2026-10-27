@@ -10,8 +10,8 @@
     d.cajas.forEach(function (x) {
       if (x.tipo === 'monedero') { mon = x; return; }
       var chip;
-      if (x.tipo === 'factura') {
-        if (x.saldo > 0.004) { adelantado += x.saldo; chip = '<span class="chip espera">Esperando factura</span>'; }
+      if (x.tipo === 'factura' || (x.tipo === 'cero' && x.facturaRecibida)) {
+        if (x.saldo > 0.004) { adelantado += x.saldo; chip = x.facturaRecibida ? '<span class="chip mal">Factura recibida: págala</span>' : '<span class="chip espera">Esperando factura</span>'; }
         else if (x.saldo < -0.004) { chip = '<span class="chip mal">Negativa, revisar</span>'; }
         else { chip = '<span class="chip bien">Al día</span>'; }
       } else if (x.tipo === 'cero') {
@@ -69,12 +69,40 @@
         : '<p class="nota">Ningún proveedor pendiente de pago.</p>');
   }
 
+  function cambios(d) {
+    var c = d.cambios || [];
+    if (!c.length) { $('cambios').innerHTML = ''; return; }
+    var n = { compras: 0, facturas: 0, pagos: 0, otros: 0 }, nombres = [];
+    c.forEach(function (e) {
+      var t = (e.tipo || '').split('.')[0];
+      if (t === 'purchase' || t === 'purchaserefund') { n.compras++; } else if (t === 'invoice' || t === 'creditnote') { n.facturas++; } else if (t === 'payment') { n.pagos++; } else { n.otros++; }
+      if (e.contacto && nombres.indexOf(e.contacto) < 0 && nombres.length < 3) { nombres.push(e.contacto); }
+    });
+    var partes = [];
+    if (n.compras) { partes.push(n.compras + (n.compras === 1 ? ' compra' : ' compras')); }
+    if (n.facturas) { partes.push(n.facturas + (n.facturas === 1 ? ' factura de venta' : ' facturas de venta')); }
+    if (n.pagos) { partes.push(n.pagos + (n.pagos === 1 ? ' pago' : ' pagos')); }
+    if (n.otros) { partes.push(n.otros + ' otros cambios'); }
+    $('cambios').innerHTML = '<div class="cambios"><div><b>Hay cambios en Holded desde la foto</b>' + esc(partes.join(', '))
+      + (nombres.length ? ' (' + esc(nombres.join(', ')) + ')' : '') + '.</div><button type="button" id="act2">Actualizar</button></div>';
+    $('act2').addEventListener('click', function () { $('act').click(); });
+  }
+
+  function banco(d) {
+    if (d.bancoPend === null || d.bancoPend === undefined) { $('banco').innerHTML = ''; return; }
+    var sync = d.bancoSync ? new Date(d.bancoSync) : null;
+    var txt = d.bancoPend ? '<b>' + d.bancoPend + (d.bancoPend === 1 ? ' movimiento sin conciliar' : ' movimientos sin conciliar') + '</b>' : 'Todo conciliado';
+    $('banco').innerHTML = '<div class="banco"><span>Banco Santander: ' + txt
+      + (sync ? '<small>Holded lo sincronizó el ' + sync.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) + ' a las ' + sync.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) + '</small>' : '') + '</span>'
+      + (d.bancoPend ? '<a class="chip espera" href="https://app.holded.com/" target="_blank" rel="noopener">Abrir Holded</a>' : '<span class="chip bien">Al día</span>') + '</div>';
+  }
+
   function pinta(d) {
     var t = new Date(d.foto), hoy = new Date();
     var cuando = t.toDateString() === hoy.toDateString() ? 'hoy' : t.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
     $('foto').textContent = 'Datos de Holded de ' + cuando + ', ' + t.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
       + (d.ajustes ? ' (con ' + d.ajustes + (d.ajustes === 1 ? ' operación' : ' operaciones') + ' de Waylet)' : '');
-    cajas(d); pagos(d); impuestos(d); resultado(d); pendientes(d);
+    cambios(d); banco(d); cajas(d); pagos(d); impuestos(d); resultado(d); pendientes(d);
     $('uso').textContent = 'Llamadas a Holded de esta web este mes: ' + d.uso + ' (límite de la cuenta: 7.500)';
     $('errores').innerHTML = '';
   }

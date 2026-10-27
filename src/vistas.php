@@ -2,7 +2,7 @@
 declare(strict_types=1);
 defined('APP_ROOT') || exit;
 
-const VERSION_ESTATICOS = '5';
+const VERSION_ESTATICOS = '6';
 
 function cabecera(string $titulo, array $js = []): void
 {
@@ -47,6 +47,6 @@ function barra(string $actual): string
 {
     $enlace = fn(string $url, string $txt) => '<a href="' . $url . '"' . ($actual === $url ? ' aria-current="page"' : '') . '>' . $txt . '</a>';
     return '<header class="barra"><a class="marca" href="/panel.php"><img src="/assets/icon-192.png?v=4" alt="" width="24" height="24"><span>MPI Holded</span></a>'
-        . '<nav class="nav" aria-label="Secciones">' . $enlace('/panel.php', 'Panel') . $enlace('/waylet.php', 'Waylet') . '</nav>'
+        . '<nav class="nav" aria-label="Secciones">' . $enlace('/panel.php', 'Panel') . $enlace('/waylet.php', 'Waylet') . $enlace('/tareas.php', 'Tareas') . '</nav>'
         . botonSalir() . '</header>';
 }

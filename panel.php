@@ -8,8 +8,10 @@ echo barra('/panel.php');
 ?>
 <main class="pagina">
   <div class="foto"><span id="foto" aria-live="polite">Cargando…</span>
-    <button type="button" id="act" title="Vuelve a leer los datos de Holded (3 llamadas)">Actualizar</button></div>
+    <button type="button" id="act" title="Vuelve a leer los datos de Holded (4 llamadas)">Actualizar</button></div>
   <div id="errores"></div>
+  <div id="cambios"></div>
+  <div id="banco"></div>
 
   <section class="sec" aria-labelledby="t-cajas">
     <h2 id="t-cajas">Cajas y monederos</h2>
