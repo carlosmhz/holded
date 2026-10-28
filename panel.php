@@ -3,7 +3,7 @@ declare(strict_types=1);
 require __DIR__ . '/src/bootstrap.php';
 
 Auth::exigirPagina();
-cabecera('Panel · MPI Holded', ['panel.js']);
+cabecera('Panel · MPI Holded', ['panel.js', 'consultas.js']);
 echo barra('/panel.php');
 ?>
 <main class="pagina">
@@ -40,6 +40,25 @@ echo barra('/panel.php');
       </section>
     </div>
   </div>
+  <section class="sec" aria-labelledby="t-cons">
+    <h2 id="t-cons">¿Cuánto he gastado?</h2>
+    <form class="form consulta" id="consulta" novalidate>
+      <label for="c-concepto">Concepto</label>
+      <select id="c-concepto"><option>Cargando…</option></select>
+      <div id="c-cuenta-caja" hidden>
+        <label for="c-cuenta">Cuenta</label>
+        <select id="c-cuenta"></select>
+      </div>
+      <span class="campo" id="c-periodo-t">Periodo</span>
+      <div class="atajos" id="c-atajos" role="group" aria-labelledby="c-periodo-t"></div>
+      <div class="fechas" id="c-fechas" hidden>
+        <div><label for="c-desde">Desde</label><input type="date" id="c-desde"></div>
+        <div><label for="c-hasta">Hasta</label><input type="date" id="c-hasta"></div>
+      </div>
+      <button type="submit" class="boton" id="c-ir">Consultar</button>
+    </form>
+    <div id="c-res" aria-live="polite"></div>
+  </section>
   <p class="uso" id="uso"></p>
 </main>
 <?php pie();

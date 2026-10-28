@@ -25,6 +25,7 @@ require __DIR__ . '/Holded.php';
 require __DIR__ . '/Contabilidad.php';
 require __DIR__ . '/Waylet.php';
 require __DIR__ . '/Panel.php';
+require __DIR__ . '/Consultas.php';
 require __DIR__ . '/Tareas.php';
 require __DIR__ . '/WebPush.php';
 require __DIR__ . '/Avisos.php';

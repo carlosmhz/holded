@@ -160,3 +160,29 @@ input.sw::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:
 input.sw:checked{background:var(--azul)}input.sw:checked::after{left:19px}
 .secundario+.secundario{margin-left:6px}
 .sec h2.sub2{font-size:15px;margin:18px 0 4px}
+
+/* ── Consultas ── */
+.form select{width:100%;border:1px solid var(--linea);border-radius:10px;background:var(--sup2);padding:10px 12px;font:inherit;font-size:15px;color:inherit;appearance:auto}
+.form select:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 3px var(--azul-suave)}
+.atajos{display:flex;flex-wrap:wrap;gap:6px}
+.atajos button{border:1px solid var(--linea);border-radius:999px;background:var(--sup2);padding:6px 11px;font-size:13px;font-weight:600;color:var(--tinta2);cursor:pointer}
+.atajos button[aria-pressed="true"]{background:var(--azul);border-color:var(--azul);color:#fff}
+.fechas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fechas input{min-width:0}
+.consulta .boton{margin-top:12px}
+#c-res:not(:empty){margin-top:14px}
+.c-total{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;background:var(--azul-suave);border-radius:12px;padding:12px 14px;margin-bottom:6px}
+.c-total small{display:block;font-size:13px;font-weight:600;color:var(--tinta2)}
+.c-total span{font-size:12.5px;color:var(--tenue)}
+.c-total .v{font-size:28px;font-weight:800;font-stretch:112%;line-height:1.1;white-space:nowrap}
+.c-lineas li{display:block;padding:0}
+.c-linea{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:none;border:0;padding:8px 0;text-align:left;font-size:14px;cursor:pointer}
+.c-linea small{display:block;color:var(--azul);font-size:12px}
+.c-linea[aria-expanded="true"] small{color:var(--tenue)}
+.c-linea b{white-space:nowrap}
+.c-det{padding:0 0 8px}
+.c-apuntes{list-style:none;margin:0;padding:0 0 0 8px;border-left:2px solid var(--linea)}
+.c-apuntes li{display:grid;grid-template-columns:48px 1fr auto;gap:8px;padding:5px 0;font-size:13px}
+.c-apuntes .f{color:var(--tenue)}
+.c-apuntes small{display:block;color:var(--tenue);font-size:11.5px}
+.c-apuntes b{font-weight:600;white-space:nowrap}
