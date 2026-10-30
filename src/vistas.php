@@ -2,7 +2,7 @@
 declare(strict_types=1);
 defined('APP_ROOT') || exit;
 
-const VERSION_ESTATICOS = '7';
+const VERSION_ESTATICOS = '8';
 
 function cabecera(string $titulo, array $js = []): void
 {

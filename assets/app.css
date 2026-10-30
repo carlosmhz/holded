@@ -17,7 +17,7 @@ button,input{font:inherit;color:inherit}
 [hidden]{display:none!important}
 
 /* Barra superior */
-.barra{display:flex;align-items:center;gap:10px;max-width:760px;margin:0 auto;padding:14px 16px 8px}
+.barra{display:flex;align-items:center;gap:10px;max-width:760px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 8px calc(16px + env(safe-area-inset-left))}
 .marca{display:flex;align-items:center;gap:8px;text-decoration:none;margin-right:auto;min-width:0}
 .marca img{width:24px;height:24px;border-radius:6px;display:block}
 .marca span{font-weight:700;font-size:15px;white-space:nowrap}
